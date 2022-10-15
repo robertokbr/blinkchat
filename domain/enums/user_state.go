@@ -4,6 +4,7 @@ type UserState string
 
 const (
 	DISCONNECTED UserState = "DISCONNECTED"
-	SEARCHING    UserState = "searching"
 	CONNECTED    UserState = "CONNECTED"
+	SEARCHING    UserState = "SEARCHING"
+	IN_ROOM      UserState = "IN_ROOM"
 )
