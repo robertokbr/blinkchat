@@ -26,13 +26,13 @@ func NewPool() *Pool {
 	}
 }
 
-func (pool *Pool) Start() {
-	log.Printf("Starting pool at %v", pool.CreatedAt)
+func (pool *Pool) Start(poolNumber int) {
+	log.Printf("[Pool %v]: Starting pool at %v", poolNumber, pool.CreatedAt)
 
 	for {
 		select {
 		case client := <-pool.Register:
-			log.Printf("Registering client %v", client.User.ID)
+			log.Printf("[Pool %v]: Registering client %v", poolNumber, client.User.ID)
 
 			pool.Clients[client] = true
 
@@ -48,7 +48,7 @@ func (pool *Pool) Start() {
 			break
 
 		case client := <-pool.Unregister:
-			log.Printf("Unregistering client %v", client.User.ID)
+			log.Printf("[Pool %v]: Unregistering client %v", poolNumber, client.User.ID)
 
 			delete(pool.Clients, client)
 
@@ -65,7 +65,7 @@ func (pool *Pool) Start() {
 		case message := <-pool.Broadcast:
 			for client := range pool.Clients {
 				if err := client.Conn.WriteJSON(message); err != nil {
-					log.Printf("error writing message: %v", err)
+					log.Printf("[Pool %v]: error writing message: %v", poolNumber, err)
 					return
 				}
 			}
