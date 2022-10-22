@@ -4,32 +4,28 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/robertokbr/blinkchat/domain/enums"
+	"github.com/robertokbr/blinkchat/domain/dtos"
 )
 
 type User struct {
-	ID           string          `json:"id"`
-	ConnectionID string          `json:"connection_id"`
-	Name         string          `json:"name"`
-	ImageURL     string          `json:"image_url"`
-	Email        string          `json:"email"`
-	State        enums.UserState `json:"state"`
-	CreatedAt    time.Time       `json:"created_at"`
-	UpdatedAt    time.Time       `json:"updated_at"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	ImageURL  string    `json:"image_url"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // TODO: Add validation
-func NewUser(connectionID, name, imageURL, email string, state enums.UserState, createdAt, updatedAt time.Time) *User {
+func NewUser(data dtos.CreateConnection) *User {
 	id := uuid.NewString()
 
 	return &User{
-		ID:           id,
-		ConnectionID: connectionID,
-		Name:         name,
-		ImageURL:     imageURL,
-		Email:        email,
-		State:        state,
-		CreatedAt:    createdAt,
-		UpdatedAt:    updatedAt,
+		ID:        id,
+		Name:      data.Name,
+		ImageURL:  data.ImageURL,
+		Email:     data.Email,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 }
