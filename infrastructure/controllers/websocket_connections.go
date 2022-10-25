@@ -8,10 +8,12 @@ import (
 	"github.com/robertokbr/blinkchat/domain/dtos"
 	"github.com/robertokbr/blinkchat/domain/models"
 	"github.com/robertokbr/blinkchat/infrastructure/pkg/websocket"
+	"github.com/robertokbr/blinkchat/usecases"
 )
 
 type WebsocketConnections struct {
-	Pool *websocket.Pool
+	Pool              *websocket.Pool
+	CreateUserUsecase usecases.CreateUser
 }
 
 func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +36,7 @@ func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) 
 
 	log.Printf("Connecting user: %v", createConnectionDTO)
 
-	user := models.NewUser(createConnectionDTO)
+	user, err := wsc.CreateUserUsecase.Execute(createConnectionDTO)
 
 	client := &websocket.Client{
 		User: user,
