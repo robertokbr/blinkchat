@@ -12,6 +12,10 @@ type UpdateUser struct {
 	UsersRepository interfaces.UsersRepository
 }
 
+func NewUpdateUser(usersRepository interfaces.UsersRepository) *UpdateUser {
+	return &UpdateUser{UsersRepository: usersRepository}
+}
+
 func (uc *UpdateUser) Execute(user *models.User) error {
 	user, err := uc.UsersRepository.FindByEmail(user.Email)
 

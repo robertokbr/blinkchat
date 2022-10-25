@@ -12,6 +12,10 @@ type CreateUser struct {
 	UsersRepository interfaces.UsersRepository
 }
 
+func NewCreateUser(usersRepository interfaces.UsersRepository) *CreateUser {
+	return &CreateUser{UsersRepository: usersRepository}
+}
+
 func (uc *CreateUser) Execute(data dtos.CreateConnection) (*models.User, error) {
 	user, err := uc.UsersRepository.FindByEmail(data.Email)
 
