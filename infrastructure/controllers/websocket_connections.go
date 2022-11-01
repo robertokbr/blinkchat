@@ -13,7 +13,7 @@ import (
 
 type WebsocketConnections struct {
 	Pool              *websocket.Pool
-	CreateUserUsecase usecases.CreateUser
+	CreateUserUsecase *usecases.CreateUser
 }
 
 func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) {
