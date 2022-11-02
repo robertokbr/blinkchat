@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blinkchat
+  labels:
+    app: blinkchat
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: blinkchat
+  template:
+    metadata:
+      labels:
+        app: blinkchat
+    spec:
+      containers:
+      - name: blinkchat
+        image: robertokbr/blinkchat:latest
+        ports:
+        - containerPort: 8080
+      
