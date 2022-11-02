@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/gorilla/websocket"
-	"github.com/robertokbr/blinkchat/domain/models"
+	"github.com/robertokbr/blinkchat/src/domain/models"
 )
 
 type Client struct {

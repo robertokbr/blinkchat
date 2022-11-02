@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	"github.com/robertokbr/blinkchat/domain/interfaces"
-	"github.com/robertokbr/blinkchat/domain/models"
+	"github.com/robertokbr/blinkchat/src/domain/interfaces"
+	"github.com/robertokbr/blinkchat/src/domain/models"
 )
 
 type UpdateUser struct {

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/robertokbr/blinkchat/infrastructure/middlewares"
+	"github.com/robertokbr/blinkchat/src/infrastructure/middlewares"
 )
 
 func Upgrade(r *http.Request, w http.ResponseWriter) (*websocket.Conn, error) {

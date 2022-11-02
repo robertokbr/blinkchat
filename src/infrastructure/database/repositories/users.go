@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"github.com/robertokbr/blinkchat/domain/models"
+	"github.com/robertokbr/blinkchat/src/domain/models"
 	"gorm.io/gorm"
 )
 

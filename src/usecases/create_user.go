@@ -3,9 +3,9 @@ package usecases
 import (
 	"log"
 
-	"github.com/robertokbr/blinkchat/domain/dtos"
-	"github.com/robertokbr/blinkchat/domain/interfaces"
-	"github.com/robertokbr/blinkchat/domain/models"
+	"github.com/robertokbr/blinkchat/src/domain/dtos"
+	"github.com/robertokbr/blinkchat/src/domain/interfaces"
+	"github.com/robertokbr/blinkchat/src/domain/models"
 )
 
 type CreateUser struct {

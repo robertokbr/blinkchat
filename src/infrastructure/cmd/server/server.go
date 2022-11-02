@@ -4,11 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/robertokbr/blinkchat/infrastructure/controllers"
-	"github.com/robertokbr/blinkchat/infrastructure/database"
-	"github.com/robertokbr/blinkchat/infrastructure/database/repositories"
-	"github.com/robertokbr/blinkchat/infrastructure/pkg/websocket"
-	"github.com/robertokbr/blinkchat/usecases"
+	"github.com/robertokbr/blinkchat/src/infrastructure/controllers"
+	"github.com/robertokbr/blinkchat/src/infrastructure/database"
+	"github.com/robertokbr/blinkchat/src/infrastructure/database/repositories"
+	"github.com/robertokbr/blinkchat/src/infrastructure/pkg/websocket"
+	"github.com/robertokbr/blinkchat/src/usecases"
 )
 
 func ping(w http.ResponseWriter, r *http.Request) {

@@ -2,7 +2,7 @@ package models
 
 import (
 	"github.com/google/uuid"
-	"github.com/robertokbr/blinkchat/domain/dtos"
+	"github.com/robertokbr/blinkchat/src/domain/dtos"
 )
 
 type User struct {

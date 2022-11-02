@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/robertokbr/blinkchat/domain/dtos"
-	"github.com/robertokbr/blinkchat/domain/models"
-	"github.com/robertokbr/blinkchat/infrastructure/pkg/websocket"
-	"github.com/robertokbr/blinkchat/usecases"
+	"github.com/robertokbr/blinkchat/src/domain/dtos"
+	"github.com/robertokbr/blinkchat/src/domain/models"
+	"github.com/robertokbr/blinkchat/src/infrastructure/pkg/websocket"
+	"github.com/robertokbr/blinkchat/src/usecases"
 )
 
 type WebsocketConnections struct {

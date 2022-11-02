@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/robertokbr/blinkchat/domain/enums"
-	"github.com/robertokbr/blinkchat/domain/models"
+	"github.com/robertokbr/blinkchat/src/domain/enums"
+	"github.com/robertokbr/blinkchat/src/domain/models"
 )
 
 type Pool struct {

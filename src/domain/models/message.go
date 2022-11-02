@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/robertokbr/blinkchat/domain/enums"
+	"github.com/robertokbr/blinkchat/src/domain/enums"
 )
 
 type Message struct {

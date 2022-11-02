@@ -3,11 +3,11 @@ package usecase_tests
 import (
 	"testing"
 
-	"github.com/robertokbr/blinkchat/domain/dtos"
-	"github.com/robertokbr/blinkchat/domain/models"
-	"github.com/robertokbr/blinkchat/infrastructure/database"
-	"github.com/robertokbr/blinkchat/infrastructure/database/repositories"
-	"github.com/robertokbr/blinkchat/usecases"
+	"github.com/robertokbr/blinkchat/src/domain/dtos"
+	"github.com/robertokbr/blinkchat/src/domain/models"
+	"github.com/robertokbr/blinkchat/src/infrastructure/database"
+	"github.com/robertokbr/blinkchat/src/infrastructure/database/repositories"
+	"github.com/robertokbr/blinkchat/src/usecases"
 	"github.com/stretchr/testify/require"
 )
 

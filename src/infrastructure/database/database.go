@@ -3,7 +3,7 @@ package database
 import (
 	"log"
 
-	"github.com/robertokbr/blinkchat/domain/models"
+	"github.com/robertokbr/blinkchat/src/domain/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
