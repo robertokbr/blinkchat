@@ -36,10 +36,12 @@ func (pool *Pool) Start(poolNumber int) {
 
 			pool.Clients[client] = true
 
-			message := models.Message{
-				Type:    enums.TEXT,
-				Content: "New user joined",
-			}
+			message := models.NewMessage(
+				"New user joined",
+				client.User,
+				enums.TEXT,
+				enums.CONNECTED,
+			)
 
 			for client := range pool.Clients {
 				client.Conn.WriteJSON(message)
@@ -52,10 +54,12 @@ func (pool *Pool) Start(poolNumber int) {
 
 			delete(pool.Clients, client)
 
-			message := models.Message{
-				Type:    enums.TEXT,
-				Content: "User left",
-			}
+			message := models.NewMessage(
+				"User has disconnected",
+				client.User,
+				enums.TEXT,
+				enums.DISCONNECTED,
+			)
 
 			for client := range pool.Clients {
 				client.Conn.WriteJSON(message)

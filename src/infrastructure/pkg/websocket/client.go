@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gorilla/websocket"
+	"github.com/robertokbr/blinkchat/src/domain/enums"
 	"github.com/robertokbr/blinkchat/src/domain/models"
 )
 
@@ -20,14 +21,21 @@ func (c *Client) Read() {
 	}()
 
 	for {
-		_, content, err := c.Conn.ReadMessage()
+		_, contentInBytes, err := c.Conn.ReadMessage()
 
 		if err != nil {
 			log.Printf("error reading message: %v", err)
 			break
 		}
 
-		message := models.NewMessage(string(content), *c.User)
+		content := string(contentInBytes)
+
+		message := models.NewMessage(
+			content,
+			c.User,
+			enums.TEXT,
+			enums.MESSAGE,
+		)
 
 		c.Pool.Broadcast <- *message
 	}
