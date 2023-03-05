@@ -10,8 +10,9 @@ import (
 
 type Client struct {
 	*models.User
-	Conn *websocket.Conn
-	Pool *Pool
+	Conn  *websocket.Conn
+	Pool  *Pool
+	State enums.ClientState
 }
 
 func (c *Client) Read() {
@@ -34,7 +35,7 @@ func (c *Client) Read() {
 			content,
 			c.User,
 			enums.TEXT,
-			enums.MESSAGE,
+			enums.BROADCASTING,
 		)
 
 		c.Pool.Broadcast <- *message

@@ -8,9 +8,9 @@ import (
 )
 
 type Message struct {
-	ID     string           `json:"id"`
-	Action enums.ActionType `json:"action"`
-	Data   MessageData      `json:"data"`
+	ID     string               `json:"id"`
+	Action enums.WebsocketEvent `json:"action"`
+	Data   MessageData          `json:"data"`
 }
 
 type MessageData struct {
@@ -24,7 +24,7 @@ func NewMessage(
 	content string,
 	from *User,
 	messageType enums.MessageType,
-	action enums.ActionType,
+	action enums.WebsocketEvent,
 ) *Message {
 	id := uuid.NewString()
 
