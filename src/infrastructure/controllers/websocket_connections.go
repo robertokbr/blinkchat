@@ -49,6 +49,7 @@ func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) 
 	client.Read()
 }
 
+// Return all connected users
 func (wsc *WebsocketConnections) FindAll(w http.ResponseWriter, r *http.Request) {
 	connections := make([]*models.User, 0)
 
