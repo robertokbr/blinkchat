@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"runtime"
 
 	"github.com/robertokbr/blinkchat/src/infrastructure/controllers"
 	"github.com/robertokbr/blinkchat/src/infrastructure/database"
@@ -33,9 +34,13 @@ func main() {
 		CreateUserUsecase: createUserUC,
 	}
 
-	for i := 0; i < 10; i++ {
-		go pool.Start(i)
-	}
+	threads := runtime.NumCPU()
+
+	go func() {
+		for i := 0; i < threads; i++ {
+			go pool.Start(i)
+		}
+	}()
 
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/ws", websocketConnectionsController.Create)
