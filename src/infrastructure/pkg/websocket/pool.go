@@ -43,12 +43,13 @@ func (pool *Pool) Start(poolNumber int) {
 				enums.CONNECTED,
 			)
 
-			for client := range pool.Clients {
-				client.Conn.WriteJSON(message)
-			}
+			go func() {
+				for client := range pool.Clients {
+					client.Conn.WriteJSON(message)
+				}
+			}()
 
 			break
-
 		case client := <-pool.Unregister:
 			log.Printf("[Pool %v]: Unregistering client %v", poolNumber, client.User.ID)
 
@@ -61,9 +62,11 @@ func (pool *Pool) Start(poolNumber int) {
 				enums.DISCONNECTED,
 			)
 
-			for client := range pool.Clients {
-				client.Conn.WriteJSON(message)
-			}
+			go func() {
+				for client := range pool.Clients {
+					client.Conn.WriteJSON(message)
+				}
+			}()
 
 			break
 		case message := <-pool.Broadcast:
