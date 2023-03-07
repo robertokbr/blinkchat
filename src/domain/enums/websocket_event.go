@@ -7,5 +7,6 @@ const (
 	CONNECTED    WebsocketEvent = "CONNECTED"
 	SEARCHING    WebsocketEvent = "SEARCHING"
 	MATCHING     WebsocketEvent = "MATCHING"
+	UNMATCING    WebsocketEvent = "UNMATCHING"
 	BROADCASTING WebsocketEvent = "BROADCASTING"
 )
