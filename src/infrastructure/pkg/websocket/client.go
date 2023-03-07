@@ -24,6 +24,12 @@ func (c *Client) Unmatch() {
 	c.Pair = nil
 }
 
+func (c *Client) Match(client *Client) {
+	c.State = enums.MATCHED
+	c.PairedAt = time.Now()
+	c.Pair = client
+}
+
 func (c *Client) Read() {
 	defer func() {
 		c.Pool.Unregister <- c
