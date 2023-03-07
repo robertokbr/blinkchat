@@ -47,5 +47,9 @@ func main() {
 	http.HandleFunc("/connections", websocketConnectionsController.FindAll)
 
 	log.Println("Starting server on port 8080...")
-	http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":8080", nil)
+
+	if err != nil {
+		log.Fatalf("error starting server: %v", err)
+	}
 }
