@@ -2,6 +2,8 @@ package websocket
 
 import (
 	"log"
+	"math/rand"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/robertokbr/blinkchat/src/domain/enums"
@@ -10,9 +12,11 @@ import (
 
 type Client struct {
 	*models.User
-	Conn  *websocket.Conn
-	Pool  *Pool
-	State enums.ClientState
+	Conn     *websocket.Conn
+	Pool     *Pool
+	State    enums.ClientState
+	Pair     *Client
+	PairedAt time.Time
 }
 
 func (c *Client) Read() {
@@ -40,4 +44,12 @@ func (c *Client) Read() {
 
 		c.Pool.Broadcast <- *message
 	}
+}
+
+func (c *Client) Match() {
+	lenght := len(c.Pool.Clients)
+
+	randonIndex := rand.Intn(lenght)
+
+    pair := 
 }
