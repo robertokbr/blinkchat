@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"log"
-	"math/rand"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -44,12 +43,4 @@ func (c *Client) Read() {
 
 		c.Pool.Broadcast <- *message
 	}
-}
-
-func (c *Client) Match() {
-	lenght := len(c.Pool.Clients)
-
-	randonIndex := rand.Intn(lenght)
-
-    pair := 
 }
