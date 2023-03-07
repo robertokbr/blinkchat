@@ -18,6 +18,12 @@ type Client struct {
 	PairedAt time.Time
 }
 
+func (c *Client) Unmatch() {
+	c.State = enums.UNMATCHED
+	c.PairedAt = time.Time{}
+	c.Pair = nil
+}
+
 func (c *Client) Read() {
 	defer func() {
 		c.Pool.Unregister <- c
@@ -41,6 +47,6 @@ func (c *Client) Read() {
 			enums.BROADCASTING,
 		)
 
-		c.Pool.Broadcast <- *message
+		c.Pool.SpreadMessage(*message)
 	}
 }
