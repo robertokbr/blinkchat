@@ -12,6 +12,7 @@ type Pool struct {
 	Register   chan *Client
 	Unregister chan *Client
 	Clients    map[string]*Client
+	Pairs      map[string]*Client
 	Broadcast  chan models.Message
 	Match      chan models.Message
 	CreatedAt  time.Time
@@ -22,6 +23,7 @@ func NewPool() *Pool {
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Clients:    make(map[string]*Client),
+		Pairs:      make(map[string]*Client),
 		Broadcast:  make(chan models.Message),
 		Match:      make(chan models.Message),
 		CreatedAt:  time.Now(),
@@ -69,6 +71,7 @@ func (pool *Pool) Start(poolNumber int) {
 			log.Printf("[Pool %v]: Unregistering client %v", poolNumber, client.User.ID)
 
 			delete(pool.Clients, client.ID)
+			delete(pool.Pairs, client.ID)
 
 			message := models.NewMessage(
 				"User has disconnected",
@@ -90,12 +93,31 @@ func (pool *Pool) Start(poolNumber int) {
 
 			break
 		case message := <-pool.Broadcast:
-			for _, client := range pool.Clients {
-				if err := client.Conn.WriteJSON(message); err != nil {
+			pair := pool.Clients[message.Data.From.ID].Pair
+
+			if pair != nil && pool.CheckIfClientIsOnline(pair) {
+				if err := pair.Conn.WriteJSON(message); err != nil {
 					log.Printf("[Pool %v]: error writing message: %v", poolNumber, err)
-					return
 				}
 			}
+
+			break
+		case message := <-pool.Match:
+			client := pool.Clients[message.Data.From.ID]
+			pair := client.Pair
+
+			if pair != nil && pool.CheckIfClientIsOnline(pair) {
+				// Notify pair that the user is searching for a new pair
+				if err := pair.Conn.WriteJSON(message); err != nil {
+					log.Printf("[Pool %v]: error writing message: %v", poolNumber, err)
+				}
+
+				pair.Unmatch()
+			}
+
+			client.Unmatch()
+
+			pool.Pairs[client.ID] = client
 
 			break
 		}
