@@ -55,7 +55,7 @@ func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) 
 func (wsc *WebsocketConnections) FindAll(w http.ResponseWriter, r *http.Request) {
 	connections := make([]*models.User, 0)
 
-	for client := range wsc.Pool.Clients {
+	for _, client := range wsc.Pool.Clients {
 		connections = append(connections, client.User)
 	}
 
