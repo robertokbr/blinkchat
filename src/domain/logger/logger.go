@@ -7,30 +7,51 @@ import (
 )
 
 var (
-	Info    *log.Logger
-	Warning *log.Logger
-	Error   *log.Logger
-	Debug   *log.Logger
+	info    *log.Logger
+	warning *log.Logger
+	err     *log.Logger
+	debug   *log.Logger
 )
 
 func init() {
-	Info = log.New(os.Stdout, "[INFO]: ", log.Ldate|log.Ltime|log.Lshortfile)
-	Warning = log.New(os.Stdout, "[WARNING]: ", log.Ldate|log.Ltime|log.Lshortfile)
-	Error = log.New(os.Stderr, "[ERROR]: ", log.Ldate|log.Ltime|log.Lshortfile)
+	debug = log.New(os.Stdout, "[DEBUG]: ", log.Ldate|log.Ltime|log.Lshortfile)
+	info = log.New(os.Stdout, "[INFO]: ", log.Ldate|log.Ltime|log.Lshortfile)
+	warning = log.New(os.Stdout, "[WARNING]: ", log.Ldate|log.Ltime|log.Lshortfile)
+	err = log.New(os.Stderr, "[ERROR]: ", log.Ldate|log.Ltime|log.Lshortfile)
+}
+
+func Debug(message string) {
+	if os.Getenv("LOG_LEVEL") != "debug" {
+		return
+	}
+
+	debug.Output(2, message)
+}
+
+func Info(message string) {
+	info.Output(2, message)
+}
+
+func Warning(message string) {
+	warning.Output(2, message)
+}
+
+func Error(message string) {
+	err.Output(2, message)
 }
 
 func Debugf(format string, v ...interface{}) {
-	Debug.Output(2, fmt.Sprintf(format, v...))
+	debug.Output(2, fmt.Sprintf(format, v...))
 }
 
 func Infof(format string, v ...interface{}) {
-	Info.Output(2, fmt.Sprintf(format, v...))
+	info.Output(2, fmt.Sprintf(format, v...))
 }
 
 func Warningf(format string, v ...interface{}) {
-	Warning.Output(2, fmt.Sprintf(format, v...))
+	warning.Output(2, fmt.Sprintf(format, v...))
 }
 
 func Errorf(format string, v ...interface{}) {
-	Error.Output(2, fmt.Sprintf(format, v...))
+	err.Output(2, fmt.Sprintf(format, v...))
 }
