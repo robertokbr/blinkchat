@@ -1,8 +1,18 @@
 package dtos
 
-type RawMessage struct {
-	Data   string `json:"data"`
-	Action string `json:"action"`
+import (
+	"encoding/json"
+	"log"
+)
+
+type rawMessageData struct {
+	Content     string `json:"content"`
+	MessageType string `json:"message_type"`
+}
+
+type rawMessage struct {
+	Data   rawMessageData `json:"data"`
+	Action string         `json:"action"`
 }
 
 type CreateMessage struct {
@@ -11,10 +21,21 @@ type CreateMessage struct {
 	Event       string `json:"event"`
 }
 
-func NewCreateMessage(content, messageType, event string) *CreateMessage {
-	return &CreateMessage{
-		Content:     content,
-		MessageType: messageType,
-		Event:       event,
+func NewCreateMessage(message string) (*CreateMessage, error) {
+	var rawMessage rawMessage
+
+	err := json.Unmarshal([]byte(message), &rawMessage)
+
+	if err != nil {
+		log.Printf("[error]: failing to create rawMessage with data %v", message)
+		return nil, err
 	}
+
+	createMessage := &CreateMessage{
+		Content:     rawMessage.Data.Content,
+		MessageType: rawMessage.Data.MessageType,
+		Event:       rawMessage.Action,
+	}
+
+	return createMessage, nil
 }
