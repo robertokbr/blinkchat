@@ -35,8 +35,12 @@ func (pool *Pool) SpreadMessage(message models.Message) {
 	switch message.Action {
 	case enums.BROADCASTING:
 		pool.Broadcast <- message
+		break
 	case enums.MATCHING:
 		pool.Match <- message
+		break
+	default:
+		log.Printf("[debug]: Receiving message %v", message)
 	}
 }
 
@@ -46,8 +50,6 @@ func (pool *Pool) CheckIfClientIsOnline(client *Client) bool {
 
 func (pool *Pool) Start(poolNumber int) {
 	log.Printf("[Pool %v]: Starting pool at %v", poolNumber, pool.CreatedAt)
-
-	go pool.matchPairs()
 
 	for {
 		select {
@@ -91,6 +93,7 @@ func (pool *Pool) Start(poolNumber int) {
 				if client.Pair != nil && pool.CheckIfClientIsOnline(client.Pair) {
 					// Unmatch the pair
 					client.Pair.Unmatch()
+					pool.Pairs = append(pool.Pairs, client.Pair)
 				}
 
 				for _, pc := range pool.Clients {
@@ -111,6 +114,9 @@ func (pool *Pool) Start(poolNumber int) {
 			break
 		case message := <-pool.Match:
 			client := pool.Clients[message.Data.From.ID]
+
+			log.Printf("[debug]: Receiving matching request from client %v", client.User.ID)
+
 			pair := client.Pair
 
 			if pair != nil && pool.CheckIfClientIsOnline(pair) {
@@ -131,7 +137,7 @@ func (pool *Pool) Start(poolNumber int) {
 	}
 }
 
-func (pool *Pool) matchPairs() {
+func (pool *Pool) MatchPairs() {
 	for {
 		amountOfPairs := len(pool.Pairs)
 
@@ -151,8 +157,25 @@ func (pool *Pool) matchPairs() {
 		clientOne.Match(clientTwo)
 		clientTwo.Match(clientOne)
 
-		utils.Splice(&pool.Pairs, randomIndexTwo)
 		utils.Splice(&pool.Pairs, randomIndexOne)
+		utils.Splice(&pool.Pairs, utils.If(randomIndexTwo < randomIndexOne, randomIndexTwo, randomIndexTwo-1))
+
+		message := models.NewMessage(
+			"You have been matched with a new user",
+			clientTwo.User,
+			enums.TEXT,
+			enums.MATCHING,
+		)
+
+		if err := clientOne.Conn.WriteJSON(message); err != nil {
+			log.Printf("[error]: error writing message: %v", err)
+		}
+
+		message.Data.From = clientOne.User
+
+		if err := clientTwo.Conn.WriteJSON(message); err != nil {
+			log.Printf("[error]: error writing message: %v", err)
+		}
 	}
 }
 
