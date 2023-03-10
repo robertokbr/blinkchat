@@ -6,13 +6,14 @@ import (
 
 	"github.com/robertokbr/blinkchat/src/domain/enums"
 	"github.com/robertokbr/blinkchat/src/domain/models"
+	"github.com/robertokbr/blinkchat/src/infrastructure/utils"
 )
 
 type Pool struct {
 	Register   chan *Client
 	Unregister chan *Client
 	Clients    map[string]*Client
-	Pairs      map[string]*Client
+	Pairs      []*Client
 	Broadcast  chan models.Message
 	Match      chan models.Message
 	CreatedAt  time.Time
@@ -23,7 +24,7 @@ func NewPool() *Pool {
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Clients:    make(map[string]*Client),
-		Pairs:      make(map[string]*Client),
+		Pairs:      make([]*Client, 0),
 		Broadcast:  make(chan models.Message),
 		Match:      make(chan models.Message),
 		CreatedAt:  time.Now(),
@@ -45,6 +46,8 @@ func (pool *Pool) CheckIfClientIsOnline(client *Client) bool {
 
 func (pool *Pool) Start(poolNumber int) {
 	log.Printf("[Pool %v]: Starting pool at %v", poolNumber, pool.CreatedAt)
+
+	go pool.matchPairs()
 
 	for {
 		select {
@@ -71,7 +74,11 @@ func (pool *Pool) Start(poolNumber int) {
 			log.Printf("[Pool %v]: Unregistering client %v", poolNumber, client.User.ID)
 
 			delete(pool.Clients, client.ID)
-			delete(pool.Pairs, client.ID)
+
+			// Improve this logic performance
+			utils.Filter(&pool.Pairs, func(c *Client) bool {
+				return c.ID != client.ID
+			})
 
 			message := models.NewMessage(
 				"User has disconnected",
@@ -81,7 +88,7 @@ func (pool *Pool) Start(poolNumber int) {
 			)
 
 			go func() {
-				if client.Pair != nil {
+				if client.Pair != nil && pool.CheckIfClientIsOnline(client.Pair) {
 					// Unmatch the pair
 					client.Pair.Unmatch()
 				}
@@ -117,9 +124,45 @@ func (pool *Pool) Start(poolNumber int) {
 
 			client.Unmatch()
 
-			pool.Pairs[client.ID] = client
+			pool.Pairs = append(pool.Pairs, client)
 
 			break
 		}
 	}
+}
+
+func (pool *Pool) matchPairs() {
+	for {
+		amountOfPairs := len(pool.Pairs)
+
+		if amountOfPairs < 2 {
+			// Wait for more clients for 5 seconds
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		randomIndexOne, randomIndexTwo := pool.getTwoRandomIndex(amountOfPairs)
+
+		clientOne := pool.Pairs[randomIndexOne]
+		clientTwo := pool.Pairs[randomIndexTwo]
+
+		log.Printf("Matching clients %v and %v", clientOne.User.ID, clientTwo.User.ID)
+
+		clientOne.Match(clientTwo)
+		clientTwo.Match(clientOne)
+
+		utils.Splice(&pool.Pairs, randomIndexTwo)
+		utils.Splice(&pool.Pairs, randomIndexOne)
+	}
+}
+
+func (pool *Pool) getTwoRandomIndex(len int) (int, int) {
+	randomIndexOne := utils.Rand(len)
+	randomIndexTwo := utils.Rand(len)
+
+	if randomIndexOne == randomIndexTwo {
+		return pool.getTwoRandomIndex(len)
+	}
+
+	return randomIndexOne, randomIndexTwo
 }
