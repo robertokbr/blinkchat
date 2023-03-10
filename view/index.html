@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <!-- simple websocket app -->
+    <h1>Websocket App</h1>
+
+    <script>
+        const ws = new WebSocket(`ws://localhost:8080/ws?user={ "name": "rob", "email": "rob@email${Date.now()}@gmail.com" }`);
+        ws.onopen = () => {
+            ws.send('Hello from client');
+        }
+        ws.onmessage = (event) => {
+            console.log(event.data);
+        }
+    </script>
+
+</body>
+</html>
