@@ -40,6 +40,8 @@ func main() {
 		for i := 0; i < threads; i++ {
 			go pool.Start(i)
 		}
+
+		pool.MatchPairs()
 	}()
 
 	http.HandleFunc("/ping", ping)
