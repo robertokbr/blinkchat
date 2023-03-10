@@ -9,16 +9,80 @@
 <body>
     <!-- simple websocket app -->
     <h1>Websocket App</h1>
-
+    <button id="button" onclick="startMatching()">Start matching</button>
+    <div id="chat" class="hiden">
+        <input type="text" id="message" placeholder="Enter message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
     <script>
+        let isMatched = false;
+
         const ws = new WebSocket(`ws://localhost:8080/ws?user={ "name": "rob", "email": "rob@email${Date.now()}@gmail.com" }`);
         ws.onopen = () => {
             ws.send('Hello from client');
         }
         ws.onmessage = (event) => {
             console.log(event.data);
+
+            if (JSON.parse(event.data).action === "matching") {
+                isMatched = !isMatched;
+
+                if (isMatched) {
+                    console.log("matched")
+                    document.getElementById('button').classList.toggle('hiden');
+                    document.getElementById('chat').classList.toggle('hiden');
+                }
+            }
+        }
+
+        function startMatching() {
+            ws.send(JSON.stringify({
+                action: "matching",
+                data: {
+                    content: "requesting for match",
+                    message_type: "text"
+                }
+            }))
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('message').value;
+            ws.send(JSON.stringify({
+                action: "broadcasting",
+                data: {
+                    content: message,
+                    message_type: "text"
+                }
+            }))
         }
     </script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
 
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        button {
+            padding: 1rem 2rem;
+            font-size: 1.5rem;
+            border: none;
+            background-color: #000;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 15px;
+        }
+
+        .hiden {
+            display: none;
+        }
+    </style>
 </body>
 </html>
