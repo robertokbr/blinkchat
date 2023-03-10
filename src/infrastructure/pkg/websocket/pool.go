@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/robertokbr/blinkchat/src/domain/enums"
+	"github.com/robertokbr/blinkchat/src/domain/logger"
+	"github.com/robertokbr/blinkchat/src/domain/messages"
 	"github.com/robertokbr/blinkchat/src/domain/models"
 	"github.com/robertokbr/blinkchat/src/infrastructure/utils"
 )
@@ -12,10 +14,10 @@ import (
 type Pool struct {
 	Register   chan *Client
 	Unregister chan *Client
-	Clients    map[string]*Client
-	Pairs      []*Client
 	Broadcast  chan models.Message
 	Match      chan models.Message
+	Clients    map[string]*Client
+	Pairs      []*Client
 	CreatedAt  time.Time
 }
 
@@ -23,10 +25,10 @@ func NewPool() *Pool {
 	return &Pool{
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
-		Clients:    make(map[string]*Client),
-		Pairs:      make([]*Client, 0),
 		Broadcast:  make(chan models.Message),
 		Match:      make(chan models.Message),
+		Clients:    make(map[string]*Client),
+		Pairs:      make([]*Client, 0),
 		CreatedAt:  time.Now(),
 	}
 }
@@ -44,26 +46,17 @@ func (pool *Pool) SpreadMessage(message models.Message) {
 	}
 }
 
-func (pool *Pool) CheckIfClientIsOnline(client *Client) bool {
-	return pool.Clients[client.ID] != nil
-}
-
 func (pool *Pool) Start(poolNumber int) {
-	log.Printf("[Pool %v]: Starting pool at %v", poolNumber, pool.CreatedAt)
+	logger.Infof("[Pool %v]: Starting pool", poolNumber)
 
 	for {
 		select {
 		case client := <-pool.Register:
-			log.Printf("[Pool %v]: Registering client %v", poolNumber, client.User.ID)
+			logger.Infof("[Pool %v]: Registering client %v", poolNumber, client.User.ID)
 
 			pool.Clients[client.ID] = client
 
-			message := models.NewMessage(
-				"New user joined",
-				client.User,
-				enums.TEXT,
-				enums.CONNECTED,
-			)
+			message := messages.UserConnected(client.User)
 
 			go func() {
 				for _, pc := range pool.Clients {
@@ -73,7 +66,7 @@ func (pool *Pool) Start(poolNumber int) {
 
 			break
 		case client := <-pool.Unregister:
-			log.Printf("[Pool %v]: Unregistering client %v", poolNumber, client.User.ID)
+			logger.Infof("[Pool %v]: Unregistering client %v", poolNumber, client.User.ID)
 
 			delete(pool.Clients, client.ID)
 
@@ -82,20 +75,14 @@ func (pool *Pool) Start(poolNumber int) {
 				return c.ID != client.ID
 			})
 
-			message := models.NewMessage(
-				"User has disconnected",
-				client.User,
-				enums.TEXT,
-				enums.DISCONNECTED,
-			)
+			message := messages.UserDisconnected(client.User)
+
+			if client.Pair != nil && pool.checkIfClientIsOnline(client.Pair) {
+				client.Pair.Unmatch()
+				pool.Pairs = append(pool.Pairs, client.Pair)
+			}
 
 			go func() {
-				if client.Pair != nil && pool.CheckIfClientIsOnline(client.Pair) {
-					// Unmatch the pair
-					client.Pair.Unmatch()
-					pool.Pairs = append(pool.Pairs, client.Pair)
-				}
-
 				for _, pc := range pool.Clients {
 					pc.Conn.WriteJSON(message)
 				}
@@ -105,9 +92,9 @@ func (pool *Pool) Start(poolNumber int) {
 		case message := <-pool.Broadcast:
 			pair := pool.Clients[message.Data.From.ID].Pair
 
-			if pair != nil && pool.CheckIfClientIsOnline(pair) {
+			if pair != nil && pool.checkIfClientIsOnline(pair) {
 				if err := pair.Conn.WriteJSON(message); err != nil {
-					log.Printf("[Pool %v]: error writing message: %v", poolNumber, err)
+					logger.Errorf("[Pool %v]: error writing message: %v", poolNumber, err)
 				}
 			}
 
@@ -115,14 +102,14 @@ func (pool *Pool) Start(poolNumber int) {
 		case message := <-pool.Match:
 			client := pool.Clients[message.Data.From.ID]
 
-			log.Printf("[debug]: Receiving matching request from client %v", client.User.ID)
+			logger.Debugf("[Pool %v]: Receiving matching request from client %v", poolNumber, client.User.ID)
 
 			pair := client.Pair
 
-			if pair != nil && pool.CheckIfClientIsOnline(pair) {
+			if pair != nil && pool.checkIfClientIsOnline(pair) {
 				// Notify pair that the user is searching for a new pair
 				if err := pair.Conn.WriteJSON(message); err != nil {
-					log.Printf("[Pool %v]: error writing message: %v", poolNumber, err)
+					logger.Errorf("[Pool %v]: error writing message: %v", poolNumber, err)
 				}
 
 				pair.Unmatch()
@@ -152,7 +139,7 @@ func (pool *Pool) MatchPairs() {
 		clientOne := pool.Pairs[randomIndexOne]
 		clientTwo := pool.Pairs[randomIndexTwo]
 
-		log.Printf("Matching clients %v and %v", clientOne.User.ID, clientTwo.User.ID)
+		logger.Infof("Matching clients %v and %v", clientOne.User.ID, clientTwo.User.ID)
 
 		clientOne.Match(clientTwo)
 		clientTwo.Match(clientOne)
@@ -188,4 +175,8 @@ func (pool *Pool) getTwoRandomIndex(len int) (int, int) {
 	}
 
 	return randomIndexOne, randomIndexTwo
+}
+
+func (pool *Pool) checkIfClientIsOnline(client *Client) bool {
+	return pool.Clients[client.ID] != nil
 }
