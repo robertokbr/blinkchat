@@ -1,12 +1,12 @@
 package websocket
 
 import (
-	"log"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/robertokbr/blinkchat/src/domain/dtos"
 	"github.com/robertokbr/blinkchat/src/domain/enums"
+	"github.com/robertokbr/blinkchat/src/domain/logger"
 	"github.com/robertokbr/blinkchat/src/domain/models"
 )
 
@@ -41,7 +41,7 @@ func (c *Client) Read() {
 		_, websocketMessage, err := c.Conn.ReadMessage()
 
 		if err != nil {
-			log.Printf("error reading message: %v", err)
+			logger.Errorf("error reading message: %v", err)
 			break
 		}
 
