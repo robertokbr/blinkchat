@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/robertokbr/blinkchat/src/domain/dtos"
 	"github.com/robertokbr/blinkchat/src/domain/enums"
 	"github.com/robertokbr/blinkchat/src/domain/models"
 )
@@ -37,20 +38,24 @@ func (c *Client) Read() {
 	}()
 
 	for {
-		_, contentInBytes, err := c.Conn.ReadMessage()
+		_, websocketMessage, err := c.Conn.ReadMessage()
 
 		if err != nil {
 			log.Printf("error reading message: %v", err)
 			break
 		}
 
-		content := string(contentInBytes)
+		createMessageDTO, err := dtos.NewCreateMessage(string(websocketMessage))
+
+		if err != nil {
+			continue
+		}
 
 		message := models.NewMessage(
-			content,
+			createMessageDTO.Content,
 			c.User,
-			enums.TEXT,
-			enums.BROADCASTING,
+			enums.MessageType(createMessageDTO.MessageType),
+			enums.WebsocketEvent(createMessageDTO.Event),
 		)
 
 		c.Pool.SpreadMessage(*message)
