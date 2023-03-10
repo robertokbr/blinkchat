@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"runtime"
 
+	"github.com/joho/godotenv"
+	"github.com/robertokbr/blinkchat/src/domain/logger"
 	"github.com/robertokbr/blinkchat/src/infrastructure/controllers"
 	"github.com/robertokbr/blinkchat/src/infrastructure/database"
 	"github.com/robertokbr/blinkchat/src/infrastructure/database/repositories"
@@ -12,11 +14,17 @@ import (
 	"github.com/robertokbr/blinkchat/src/usecases"
 )
 
+func init() {
+	godotenv.Load()
+}
+
 func ping(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("pong"))
 }
 
 func main() {
+	logger.Debug("Starting app with debug mode on...")
+
 	connection, err := database.NewDatabase().Connect()
 
 	if err != nil {
@@ -48,7 +56,7 @@ func main() {
 	http.HandleFunc("/ws", websocketConnectionsController.Create)
 	http.HandleFunc("/connections", websocketConnectionsController.FindAll)
 
-	log.Println("Starting server on port 8080...")
+	logger.Info("Starting server on port 8080...")
 	err = http.ListenAndServe(":8080", nil)
 
 	if err != nil {
