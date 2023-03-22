@@ -7,15 +7,14 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/robertokbr/blinkchat/src/domain/logger"
-	"github.com/robertokbr/blinkchat/src/infrastructure/controllers"
+	"github.com/robertokbr/blinkchat/src/infrastructure/controllers/factories"
 	"github.com/robertokbr/blinkchat/src/infrastructure/database"
-	"github.com/robertokbr/blinkchat/src/infrastructure/database/repositories"
-	"github.com/robertokbr/blinkchat/src/infrastructure/pkg/websocket"
-	"github.com/robertokbr/blinkchat/src/usecases"
 )
 
 func init() {
 	godotenv.Load()
+
+	logger.Debug("Starting app with debug mode on...")
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
@@ -23,38 +22,27 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	logger.Debug("Starting app with debug mode on...")
-
-	connection, err := database.NewDatabase().Connect()
+	_, err := database.NewDatabase().Connect()
 
 	if err != nil {
 		log.Fatalf("error connecting to database: %v", err)
 	}
 
-	usersRepo := repositories.NewUsersRepository(connection)
-
-	createUserUC := usecases.NewCreateUser(usersRepo)
-
-	var pool = websocket.NewPool()
-
-	var websocketConnectionsController = controllers.WebsocketConnections{
-		Pool:              pool,
-		CreateUserUsecase: createUserUC,
-	}
+	wsConnections := factories.MakeWebsocketConnectionsController()
 
 	threads := runtime.NumCPU()
 
 	go func() {
 		for i := 0; i < threads; i++ {
-			go pool.Start(i)
+			go wsConnections.Pool.Start(i)
 		}
 
-		pool.MatchPairs()
+		wsConnections.Pool.MatchPairs()
 	}()
 
 	http.HandleFunc("/ping", ping)
-	http.HandleFunc("/ws", websocketConnectionsController.Create)
-	http.HandleFunc("/ws/connections", websocketConnectionsController.FindAll)
+	http.HandleFunc("/ws", wsConnections.Create)
+	http.HandleFunc("/ws/connections", wsConnections.FindAll)
 
 	logger.Info("Starting server on port 8080...")
 
