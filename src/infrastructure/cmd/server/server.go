@@ -54,12 +54,11 @@ func main() {
 
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/ws", websocketConnectionsController.Create)
-	http.HandleFunc("/connections", websocketConnectionsController.FindAll)
+	http.HandleFunc("/ws/connections", websocketConnectionsController.FindAll)
 
 	logger.Info("Starting server on port 8080...")
-	err = http.ListenAndServe(":8080", nil)
 
-	if err != nil {
-		log.Fatalf("error starting server: %v", err)
+	if err = http.ListenAndServe(":8080", nil); err != nil {
+		logger.Infof("error starting server: %v", err)
 	}
 }
