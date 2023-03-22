@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/robertokbr/blinkchat/src/domain/dtos"
-	"github.com/robertokbr/blinkchat/src/domain/enums"
 	"github.com/robertokbr/blinkchat/src/domain/models"
 	"github.com/robertokbr/blinkchat/src/infrastructure/pkg/websocket"
 	"github.com/robertokbr/blinkchat/src/usecases"
@@ -40,13 +39,12 @@ func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) 
 	user, err := wsc.CreateUserUsecase.Execute(createConnectionDTO)
 
 	client := &websocket.Client{
-		User:  user,
-		Conn:  connection,
-		Pool:  wsc.Pool,
-		State: enums.UNMATCHED,
+		User: user,
+		Conn: connection,
+		Pool: wsc.Pool,
 	}
 
-	client.Pool.Register <- client
+	wsc.Pool.Register(client)
 
 	client.Read()
 }
