@@ -12,28 +12,62 @@ import (
 )
 
 type Pool struct {
-	Register   chan *Client
-	Unregister chan *Client
-	Broadcast  chan models.Message
-	Match      chan models.Message
-	Clients    map[string]*Client
-	Pairs      []*Client
-	CreatedAt  time.Time
+	Broadcast chan models.Message
+	Match     chan models.Message
+	Clients   map[string]*Client
+	Pairs     []*Client
+	CreatedAt time.Time
 }
 
 func NewPool() *Pool {
 	return &Pool{
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		Broadcast:  make(chan models.Message),
-		Match:      make(chan models.Message),
-		Clients:    make(map[string]*Client),
-		Pairs:      make([]*Client, 0),
-		CreatedAt:  time.Now(),
+		Broadcast: make(chan models.Message),
+		Match:     make(chan models.Message),
+		Clients:   make(map[string]*Client),
+		Pairs:     make([]*Client, 0),
+		CreatedAt: time.Now(),
 	}
 }
 
-func (pool *Pool) SpreadMessage(message models.Message) {
+func (pool *Pool) Register(client *Client) {
+	logger.Infof("Registering client %v", client.User.Email)
+
+	pool.Clients[client.ID] = client
+
+	message := messages.UserConnected(client.User)
+
+	go func() {
+		for _, pc := range pool.Clients {
+			pc.Conn.WriteJSON(message)
+		}
+	}()
+}
+
+func (pool *Pool) Unregister(client *Client) {
+	logger.Infof("Unregistering client %v", client.User.Email)
+
+	delete(pool.Clients, client.ID)
+
+	// Improve this logic performance
+	utils.Filter(&pool.Pairs, func(c *Client) bool {
+		return c.ID != client.ID
+	})
+
+	message := messages.UserDisconnected(client.User)
+
+	if client.Pair != nil && pool.checkIfClientIsOnline(client.Pair) {
+		client.Pair.Unmatch()
+		pool.Pairs = append(pool.Pairs, client.Pair)
+	}
+
+	go func() {
+		for _, pc := range pool.Clients {
+			pc.Conn.WriteJSON(message)
+		}
+	}()
+}
+
+func (pool *Pool) HandleEvent(message models.Message) {
 	switch message.Action {
 	case enums.BROADCASTING:
 		pool.Broadcast <- message
@@ -51,44 +85,6 @@ func (pool *Pool) Start(poolNumber int) {
 
 	for {
 		select {
-		case client := <-pool.Register:
-			logger.Infof("[Pool %v]: Registering client %v", poolNumber, client.User.ID)
-
-			pool.Clients[client.ID] = client
-
-			message := messages.UserConnected(client.User)
-
-			go func() {
-				for _, pc := range pool.Clients {
-					pc.Conn.WriteJSON(message)
-				}
-			}()
-
-			break
-		case client := <-pool.Unregister:
-			logger.Infof("[Pool %v]: Unregistering client %v", poolNumber, client.User.ID)
-
-			delete(pool.Clients, client.ID)
-
-			// Improve this logic performance
-			utils.Filter(&pool.Pairs, func(c *Client) bool {
-				return c.ID != client.ID
-			})
-
-			message := messages.UserDisconnected(client.User)
-
-			if client.Pair != nil && pool.checkIfClientIsOnline(client.Pair) {
-				client.Pair.Unmatch()
-				pool.Pairs = append(pool.Pairs, client.Pair)
-			}
-
-			go func() {
-				for _, pc := range pool.Clients {
-					pc.Conn.WriteJSON(message)
-				}
-			}()
-
-			break
 		case message := <-pool.Broadcast:
 			pair := pool.Clients[message.Data.From.ID].Pair
 
