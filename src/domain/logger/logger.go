@@ -4,27 +4,45 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/robertokbr/blinkchat/src/infrastructure/utils"
 )
 
 var (
 	info    *log.Logger
 	warning *log.Logger
 	err     *log.Logger
-	debug   *log.Logger
+	debug   *DebugLogger
 )
 
+type DebugLogger struct {
+	Output func(c int, s string) error
+}
+
+func NewDebugLogger(outputFunction func(c int, s string) error) *DebugLogger {
+	return &DebugLogger{
+		Output: outputFunction,
+	}
+}
+
+func fakeOutput(c int, s string) error {
+	return nil
+}
+
 func init() {
-	debug = log.New(os.Stdout, "[DEBUG]: ", log.Ldate|log.Ltime|log.Lshortfile)
+	godotenv.Load()
+	debug = utils.If(
+		os.Getenv("LOG_LEVEL") == "debug",
+		NewDebugLogger(log.New(os.Stdout, "[DEBUG]: ", log.Ldate|log.Ltime|log.Lshortfile).Output),
+		NewDebugLogger(fakeOutput),
+	)
 	info = log.New(os.Stdout, "[INFO]: ", log.Ldate|log.Ltime|log.Lshortfile)
 	warning = log.New(os.Stdout, "[WARNING]: ", log.Ldate|log.Ltime|log.Lshortfile)
 	err = log.New(os.Stderr, "[ERROR]: ", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
 func Debug(message string) {
-	if os.Getenv("LOG_LEVEL") != "debug" {
-		return
-	}
-
 	debug.Output(2, message)
 }
 
