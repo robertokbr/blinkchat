@@ -8,6 +8,8 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
+            - name: checkout
+              uses: actions/checkout@v2
             - name: Setup Golang with cache
               uses: magnetikonline/action-golang-cache@v4
               with:
