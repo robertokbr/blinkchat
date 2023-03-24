@@ -22,3 +22,12 @@ func UserConnected(user *models.User) *models.Message {
 		enums.CONNECTED,
 	)
 }
+
+func UserUnmatched(user *models.User) *models.Message {
+	return models.NewMessage(
+		"User has been unmatched",
+		user,
+		enums.TEXT,
+		enums.UNMATCHED,
+	)
+}
