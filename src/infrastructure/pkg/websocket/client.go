@@ -3,16 +3,16 @@ package websocket
 import (
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/robertokbr/blinkchat/src/domain/dtos"
 	"github.com/robertokbr/blinkchat/src/domain/enums"
+	"github.com/robertokbr/blinkchat/src/domain/interfaces"
 	"github.com/robertokbr/blinkchat/src/domain/logger"
 	"github.com/robertokbr/blinkchat/src/domain/models"
 )
 
 type Client struct {
 	*models.User
-	Conn     *websocket.Conn
+	Conn     interfaces.WebsocketConnection
 	Pool     *Pool
 	Pair     *Client
 	State    enums.UserState
