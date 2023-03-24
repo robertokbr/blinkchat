@@ -7,7 +7,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/robertokbr/blinkchat/src/domain/logger"
-	"github.com/robertokbr/blinkchat/src/infrastructure/controllers/factories"
+	controller_factories "github.com/robertokbr/blinkchat/src/infrastructure/controllers/factories"
 	"github.com/robertokbr/blinkchat/src/infrastructure/database"
 )
 
@@ -28,7 +28,7 @@ func main() {
 		log.Fatalf("error connecting to database: %v", err)
 	}
 
-	wsConnections := factories.MakeWebsocketConnectionsController()
+	wsConnections := controller_factories.MakeWebsocketConnectionsController()
 
 	threads := runtime.NumCPU()
 

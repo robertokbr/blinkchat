@@ -1,4 +1,4 @@
-package factories
+package controller_factories
 
 import (
 	"github.com/robertokbr/blinkchat/src/infrastructure/controllers"
