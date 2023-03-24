@@ -15,15 +15,18 @@ type Client struct {
 	Conn     *websocket.Conn
 	Pool     *Pool
 	Pair     *Client
+	State    enums.UserState
 	PairedAt time.Time
 }
 
 func (c *Client) Unmatch() {
+	c.State = enums.NOT_IN_A_MATCH
 	c.PairedAt = time.Time{}
 	c.Pair = nil
 }
 
 func (c *Client) Match(client *Client) {
+	c.State = enums.IN_A_MATCH
 	c.PairedAt = time.Now()
 	c.Pair = client
 }
