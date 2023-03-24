@@ -48,9 +48,9 @@ func TestRegisterClient(t *testing.T) {
 
 	wsConnectionSpy := newWSConnectionSpy()
 
-	channel := make(chan int, 0)
+	for _, user := range users {
+		websocket.WG.Add(1)
 
-	for i, user := range users {
 		client := websocket.Client{
 			Conn:  wsConnectionSpy,
 			User:  user,
@@ -58,11 +58,14 @@ func TestRegisterClient(t *testing.T) {
 			State: enums.NOT_IN_A_MATCH,
 		}
 
-		pool.Register(&client, channel, i)
+		pool.Register(&client)
+
+		websocket.WG.Wait()
 	}
 
-	require.Equal(t, 5, len(pool.Clients))
-	require.NotNil(t, wsConnectionSpy.LastMessageSent.Action)
+	poolClientsAmount := len(pool.Clients)
+
+	require.Equal(t, 5, poolClientsAmount)
 	require.Equal(t, enums.CONNECTED, wsConnectionSpy.LastMessageSent.Action)
-	require.Equal(t, 20, wsConnectionSpy.WriteJSONTimesCalled)
+	require.Equal(t, 15, wsConnectionSpy.WriteJSONTimesCalled)
 }
