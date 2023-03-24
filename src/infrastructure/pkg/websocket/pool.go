@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"log"
+	"sync"
 	"time"
 
 	"github.com/robertokbr/blinkchat/src/domain/enums"
@@ -10,6 +11,8 @@ import (
 	"github.com/robertokbr/blinkchat/src/domain/models"
 	"github.com/robertokbr/blinkchat/src/infrastructure/utils"
 )
+
+var WG = sync.WaitGroup{}
 
 type Pool struct {
 	Broadcast chan models.Message
@@ -39,6 +42,8 @@ func (pool *Pool) Register(client *Client) {
 	message := messages.UserConnected(client.User)
 
 	go func() {
+		defer WG.Done()
+
 		for _, pc := range pool.Clients {
 			pc.Conn.WriteJSON(message)
 		}
@@ -59,6 +64,8 @@ func (pool *Pool) Unregister(client *Client) {
 	message := messages.UserDisconnected(client.User)
 
 	go func() {
+		defer WG.Done()
+
 		for _, pc := range pool.Clients {
 			pc.Conn.WriteJSON(message)
 		}
