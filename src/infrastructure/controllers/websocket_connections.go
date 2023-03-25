@@ -8,6 +8,7 @@ import (
 	"github.com/robertokbr/blinkchat/src/domain/dtos"
 	"github.com/robertokbr/blinkchat/src/domain/enums"
 	"github.com/robertokbr/blinkchat/src/domain/models"
+	controller_errors "github.com/robertokbr/blinkchat/src/infrastructure/controllers/errors"
 	"github.com/robertokbr/blinkchat/src/infrastructure/pkg/websocket"
 	"github.com/robertokbr/blinkchat/src/usecases"
 )
@@ -21,9 +22,7 @@ func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) 
 	connection, err := websocket.Upgrade(r, w)
 
 	if err != nil {
-		log.Printf("error upgrading connection: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Could not upgrade connection"))
+		controller_errors.WebsocketConnectionError(w, r, err)
 		return
 	}
 
