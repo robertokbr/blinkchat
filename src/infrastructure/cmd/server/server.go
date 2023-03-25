@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"runtime"
 
 	"github.com/joho/godotenv"
 	"github.com/robertokbr/blinkchat/src/domain/logger"
@@ -22,23 +21,11 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	_, err := database.NewDatabase().Connect()
-
-	if err != nil {
+	if _, err := database.NewDatabase().Connect(); err != nil {
 		log.Fatalf("error connecting to database: %v", err)
 	}
 
 	wsConnections := controller_factories.MakeWebsocketConnectionsController()
-
-	threads := runtime.NumCPU()
-
-	go func() {
-		for i := 0; i < threads; i++ {
-			go wsConnections.Pool.Start(i)
-		}
-
-		wsConnections.Pool.MatchPairs()
-	}()
 
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/ws", wsConnections.Create)
@@ -46,7 +33,7 @@ func main() {
 
 	logger.Info("Starting server on port 8080...")
 
-	if err = http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":8080", nil); err != nil {
 		logger.Infof("error starting server: %v", err)
 	}
 }

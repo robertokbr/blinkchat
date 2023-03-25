@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"log"
+	"runtime"
 	"sync"
 	"time"
 
@@ -24,7 +25,7 @@ type Pool struct {
 }
 
 func NewPool() *Pool {
-	return &Pool{
+	pool := Pool{
 		Broadcast: make(chan models.Message),
 		Match:     make(chan models.Message),
 		Unmatch:   make(chan models.Message),
@@ -32,6 +33,18 @@ func NewPool() *Pool {
 		Pairs:     make([]*Client, 0),
 		CreatedAt: time.Now(),
 	}
+
+	threads := runtime.NumCPU()
+
+	go func() {
+		for i := 0; i < threads; i++ {
+			go pool.start(i)
+		}
+
+		pool.matchPairs()
+	}()
+
+	return &pool
 }
 
 func (pool *Pool) Register(client *Client) {
@@ -59,7 +72,7 @@ func (pool *Pool) Unregister(client *Client) {
 		})
 	}
 
-	pool.checkAndDisconnectPairs(client)
+	pool.checkAndUnmatchPairs(client)
 	delete(pool.Clients, client.ID)
 	message := messages.UserDisconnected(client.User)
 
@@ -88,7 +101,7 @@ func (pool *Pool) HandleEvent(message models.Message) {
 	}
 }
 
-func (pool *Pool) Start(poolNumber int) {
+func (pool *Pool) start(poolNumber int) {
 	logger.Infof("[Pool %v]: Starting pool", poolNumber)
 
 	for {
@@ -108,7 +121,7 @@ func (pool *Pool) Start(poolNumber int) {
 
 			logger.Debugf("[Pool %v]: Receiving matching request from client %v", poolNumber, client.User.ID)
 
-			pool.checkAndDisconnectPairs(client)
+			pool.checkAndUnmatchPairs(client)
 
 			pool.Pairs = append(pool.Pairs, client)
 
@@ -120,12 +133,12 @@ func (pool *Pool) Start(poolNumber int) {
 
 			logger.Debugf("[Pool %v]: Receiving unmatching request from client %v", poolNumber, client.User.ID)
 
-			pool.checkAndDisconnectPairs(client)
+			pool.checkAndUnmatchPairs(client)
 		}
 	}
 }
 
-func (pool *Pool) MatchPairs() {
+func (pool *Pool) matchPairs() {
 	for {
 		amountOfPairs := len(pool.Pairs)
 
@@ -182,7 +195,7 @@ func (pool *Pool) checkIfClientIsOnline(client *Client) bool {
 	return pool.Clients[client.ID] != nil
 }
 
-func (pool *Pool) checkAndDisconnectPairs(client *Client) {
+func (pool *Pool) checkAndUnmatchPairs(client *Client) {
 	if client.Pair != nil && pool.checkIfClientIsOnline(client.Pair) {
 		userUnmatchedMessage := messages.UserUnmatched(client.User)
 		client.Pair.Unmatch()
