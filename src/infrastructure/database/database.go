@@ -1,15 +1,13 @@
 package database
 
 import (
-	"log"
-
+	"github.com/robertokbr/blinkchat/src/domain/logger"
 	"github.com/robertokbr/blinkchat/src/domain/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 type Database struct {
-	Db            *gorm.DB
 	Dns           string
 	AutoMigrateDb bool
 	Debug         bool
@@ -23,25 +21,33 @@ func NewDatabase() *Database {
 	}
 }
 
+var Connection *gorm.DB
+
 func (db *Database) Connect() (*gorm.DB, error) {
+	if Connection != nil {
+		return Connection, nil
+	}
+
+	logger.Infof("connecting to database: %s", db.Dns)
+
 	var err error
 
-	db.Db, err = gorm.Open(sqlite.Open(db.Dns))
+	Connection, err = gorm.Open(sqlite.Open(db.Dns))
 
 	if err != nil {
 		return &gorm.DB{}, err
 	}
 
 	if db.AutoMigrateDb {
-		err := db.Db.AutoMigrate(
+		err := Connection.AutoMigrate(
 			&models.User{},
 		)
 
 		if err != nil {
-			log.Printf("error automigrating database: %v", err)
+			logger.Infof("error automigrating database: %v", err)
 			return &gorm.DB{}, err
 		}
 	}
 
-	return db.Db, nil
+	return Connection, nil
 }

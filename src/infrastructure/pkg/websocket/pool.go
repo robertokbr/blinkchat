@@ -2,6 +2,8 @@ package websocket
 
 import (
 	"log"
+	"runtime"
+	"sync"
 	"time"
 
 	"github.com/robertokbr/blinkchat/src/domain/enums"
@@ -11,22 +13,42 @@ import (
 	"github.com/robertokbr/blinkchat/src/infrastructure/utils"
 )
 
+var WG = sync.WaitGroup{}
+
 type Pool struct {
 	Broadcast chan models.Message
 	Match     chan models.Message
+	Unmatch   chan models.Message
 	Clients   map[string]*Client
 	Pairs     []*Client
 	CreatedAt time.Time
 }
 
 func NewPool() *Pool {
-	return &Pool{
+	pool := Pool{
 		Broadcast: make(chan models.Message),
 		Match:     make(chan models.Message),
+		Unmatch:   make(chan models.Message),
 		Clients:   make(map[string]*Client),
 		Pairs:     make([]*Client, 0),
 		CreatedAt: time.Now(),
 	}
+
+	pool.init()
+
+	return &pool
+}
+
+func (pool *Pool) init() {
+	threads := runtime.NumCPU()
+
+	go func() {
+		for i := 0; i < threads; i++ {
+			go pool.start(i)
+		}
+
+		pool.matchPairs()
+	}()
 }
 
 func (pool *Pool) Register(client *Client) {
@@ -37,8 +59,10 @@ func (pool *Pool) Register(client *Client) {
 	message := messages.UserConnected(client.User)
 
 	go func() {
+		defer WG.Done()
+
 		for _, pc := range pool.Clients {
-			pc.Conn.WriteJSON(message)
+			pc.Conn.WriteJSON(*message)
 		}
 	}()
 }
@@ -46,23 +70,21 @@ func (pool *Pool) Register(client *Client) {
 func (pool *Pool) Unregister(client *Client) {
 	logger.Infof("Unregistering client %v", client.User.Email)
 
-	delete(pool.Clients, client.ID)
-
-	// Improve this logic performance
-	utils.Filter(&pool.Pairs, func(c *Client) bool {
-		return c.ID != client.ID
-	})
-
-	message := messages.UserDisconnected(client.User)
-
-	if client.Pair != nil && pool.checkIfClientIsOnline(client.Pair) {
-		client.Pair.Unmatch()
-		pool.Pairs = append(pool.Pairs, client.Pair)
+	if client.State == enums.LOOKING_FOR_MATCH {
+		utils.Filter(&pool.Pairs, func(c *Client) bool {
+			return c.ID != client.ID
+		})
 	}
 
+	pool.checkAndUnmatchPairs(client)
+	delete(pool.Clients, client.ID)
+	message := messages.UserDisconnected(client.User)
+
 	go func() {
+		defer WG.Done()
+
 		for _, pc := range pool.Clients {
-			pc.Conn.WriteJSON(message)
+			pc.Conn.WriteJSON(*message)
 		}
 	}()
 }
@@ -75,12 +97,15 @@ func (pool *Pool) HandleEvent(message models.Message) {
 	case enums.MATCHING:
 		pool.Match <- message
 		break
+	case enums.UNMATCHING:
+		pool.Unmatch <- message
+		break
 	default:
 		log.Printf("[debug]: Receiving message %v", message)
 	}
 }
 
-func (pool *Pool) Start(poolNumber int) {
+func (pool *Pool) start(poolNumber int) {
 	logger.Infof("[Pool %v]: Starting pool", poolNumber)
 
 	for {
@@ -100,27 +125,24 @@ func (pool *Pool) Start(poolNumber int) {
 
 			logger.Debugf("[Pool %v]: Receiving matching request from client %v", poolNumber, client.User.ID)
 
-			pair := client.Pair
-
-			if pair != nil && pool.checkIfClientIsOnline(pair) {
-				// Notify pair that the user is searching for a new pair
-				if err := pair.Conn.WriteJSON(message); err != nil {
-					logger.Errorf("[Pool %v]: error writing message: %v", poolNumber, err)
-				}
-
-				pair.Unmatch()
-			}
-
-			client.Unmatch()
+			pool.checkAndUnmatchPairs(client)
 
 			pool.Pairs = append(pool.Pairs, client)
 
+			client.State = enums.LOOKING_FOR_MATCH
+
 			break
+		case message := <-pool.Unmatch:
+			client := pool.Clients[message.Data.From.ID]
+
+			logger.Debugf("[Pool %v]: Receiving unmatching request from client %v", poolNumber, client.User.ID)
+
+			pool.checkAndUnmatchPairs(client)
 		}
 	}
 }
 
-func (pool *Pool) MatchPairs() {
+func (pool *Pool) matchPairs() {
 	for {
 		amountOfPairs := len(pool.Pairs)
 
@@ -147,16 +169,16 @@ func (pool *Pool) MatchPairs() {
 			"You have been matched with a new user",
 			clientTwo.User,
 			enums.TEXT,
-			enums.MATCHING,
+			enums.MATCHED,
 		)
 
-		if err := clientOne.Conn.WriteJSON(message); err != nil {
+		if err := clientOne.Conn.WriteJSON(*message); err != nil {
 			log.Printf("[error]: error writing message: %v", err)
 		}
 
 		message.Data.From = clientOne.User
 
-		if err := clientTwo.Conn.WriteJSON(message); err != nil {
+		if err := clientTwo.Conn.WriteJSON(*message); err != nil {
 			log.Printf("[error]: error writing message: %v", err)
 		}
 	}
@@ -175,4 +197,16 @@ func (pool *Pool) getTwoRandomIndex(len int) (int, int) {
 
 func (pool *Pool) checkIfClientIsOnline(client *Client) bool {
 	return pool.Clients[client.ID] != nil
+}
+
+func (pool *Pool) checkAndUnmatchPairs(client *Client) {
+	if client.Pair != nil && pool.checkIfClientIsOnline(client.Pair) {
+		userUnmatchedMessage := messages.UserUnmatched(client.User)
+		client.Pair.Unmatch()
+		if err := client.Pair.Conn.WriteJSON(*userUnmatchedMessage); err != nil {
+			logger.Errorf("error writing message: %v", err)
+		}
+
+		client.Unmatch()
+	}
 }
