@@ -34,6 +34,12 @@ func NewPool() *Pool {
 		CreatedAt: time.Now(),
 	}
 
+	pool.init()
+
+	return &pool
+}
+
+func (pool *Pool) init() {
 	threads := runtime.NumCPU()
 
 	go func() {
@@ -43,8 +49,6 @@ func NewPool() *Pool {
 
 		pool.matchPairs()
 	}()
-
-	return &pool
 }
 
 func (pool *Pool) Register(client *Client) {
@@ -58,7 +62,7 @@ func (pool *Pool) Register(client *Client) {
 		defer WG.Done()
 
 		for _, pc := range pool.Clients {
-			pc.Conn.WriteJSON(message)
+			pc.Conn.WriteJSON(*message)
 		}
 	}()
 }
@@ -80,7 +84,7 @@ func (pool *Pool) Unregister(client *Client) {
 		defer WG.Done()
 
 		for _, pc := range pool.Clients {
-			pc.Conn.WriteJSON(message)
+			pc.Conn.WriteJSON(*message)
 		}
 	}()
 }
@@ -168,13 +172,13 @@ func (pool *Pool) matchPairs() {
 			enums.MATCHED,
 		)
 
-		if err := clientOne.Conn.WriteJSON(message); err != nil {
+		if err := clientOne.Conn.WriteJSON(*message); err != nil {
 			log.Printf("[error]: error writing message: %v", err)
 		}
 
 		message.Data.From = clientOne.User
 
-		if err := clientTwo.Conn.WriteJSON(message); err != nil {
+		if err := clientTwo.Conn.WriteJSON(*message); err != nil {
 			log.Printf("[error]: error writing message: %v", err)
 		}
 	}
@@ -199,7 +203,7 @@ func (pool *Pool) checkAndUnmatchPairs(client *Client) {
 	if client.Pair != nil && pool.checkIfClientIsOnline(client.Pair) {
 		userUnmatchedMessage := messages.UserUnmatched(client.User)
 		client.Pair.Unmatch()
-		if err := client.Pair.Conn.WriteJSON(userUnmatchedMessage); err != nil {
+		if err := client.Pair.Conn.WriteJSON(*userUnmatchedMessage); err != nil {
 			logger.Errorf("error writing message: %v", err)
 		}
 
