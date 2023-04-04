@@ -5,17 +5,16 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/robertokbr/blinkchat/src/domain/dtos"
 	"github.com/robertokbr/blinkchat/src/domain/enums"
 	"github.com/robertokbr/blinkchat/src/domain/models"
 	controller_errors "github.com/robertokbr/blinkchat/src/infrastructure/controllers/errors"
+	"github.com/robertokbr/blinkchat/src/infrastructure/database/repositories"
 	"github.com/robertokbr/blinkchat/src/infrastructure/pkg/websocket"
-	"github.com/robertokbr/blinkchat/src/usecases"
 )
 
 type WebsocketConnections struct {
-	Pool              *websocket.Pool
-	CreateUserUsecase *usecases.CreateUser
+	Pool            *websocket.Pool
+	UsersRepository *repositories.Users
 }
 
 func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) {
@@ -26,17 +25,15 @@ func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var createConnectionDTO dtos.CreateConnection
-
 	query := r.URL.Query()
 
-	createUserString := query.Get("user")
+	user_id := query.Get("user_id")
 
-	json.Unmarshal([]byte(createUserString), &createConnectionDTO)
+	user, err := wsc.UsersRepository.FindByID(user_id)
 
-	log.Printf("Connecting user: %v", createConnectionDTO)
-
-	user, err := wsc.CreateUserUsecase.Execute(createConnectionDTO)
+	if err != nil {
+		// return not found error
+	}
 
 	client := &websocket.Client{
 		User:  user,

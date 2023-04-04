@@ -13,10 +13,10 @@ func NewUsersRepository(db *gorm.DB) *Users {
 	return &Users{db: db}
 }
 
-func (u *Users) FindByEmail(email string) (*models.User, error) {
+func (u *Users) FindByID(id string) (*models.User, error) {
 	user := &models.User{}
 
-	err := u.db.Where("email = ?", email).First(user).Error
+	err := u.db.Where("id = ?", id).First(user).Error
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
