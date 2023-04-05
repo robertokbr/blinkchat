@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/robertokbr/blinkchat/src/infrastructure/utils"
+	"github.com/robertokbr/blinkchat/src/utils"
 )
 
 var (
