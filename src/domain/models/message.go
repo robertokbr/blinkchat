@@ -41,3 +41,30 @@ func NewMessage(
 		Data:   message,
 	}
 }
+
+func NewUserDisconnectedMessage(user *User) *Message {
+	return NewMessage(
+		"User has disconnected",
+		user,
+		enums.TEXT,
+		enums.DISCONNECTED,
+	)
+}
+
+func NewUserConnectedMessage(user *User) *Message {
+	return NewMessage(
+		"New user joined",
+		user,
+		enums.TEXT,
+		enums.CONNECTED,
+	)
+}
+
+func NewUserUnmatchedMessage(user *User) *Message {
+	return NewMessage(
+		"User has been unmatched",
+		user,
+		enums.TEXT,
+		enums.UNMATCHED,
+	)
+}
