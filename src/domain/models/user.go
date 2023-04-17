@@ -6,7 +6,7 @@ import (
 )
 
 type User struct {
-	ID        string `json:"id" gorm:"primaryKey type:uuid default:uuid_generate_v4()"`
+	ID        string `json:"id" gorm:"primaryKey type:uuid"`
 	Name      string `json:"name" gorm:"type:varchar(255)"`
 	ImageURL  string `json:"image_url" gorm:"type:varchar(255)"`
 	Email     string `json:"email" gorm:"type:varchar(255) unique"`
