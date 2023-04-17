@@ -42,6 +42,15 @@ func NewMessage(
 	}
 }
 
+func NewPingMessage(user *User) *Message {
+	return NewMessage(
+		"Ping",
+		user,
+		enums.TEXT,
+		enums.BROADCASTING,
+	)
+}
+
 func NewUserDisconnectedMessage(user *User) *Message {
 	return NewMessage(
 		"User has disconnected",
@@ -66,5 +75,14 @@ func NewUserUnmatchedMessage(user *User) *Message {
 		user,
 		enums.TEXT,
 		enums.UNMATCHED,
+	)
+}
+
+func NewUserMatchedMessage(user *User) *Message {
+	return NewMessage(
+		"You have been matched with a new user",
+		user,
+		enums.TEXT,
+		enums.MATCHED,
 	)
 }
