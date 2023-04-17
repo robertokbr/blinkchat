@@ -1,6 +1,11 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/robertokbr/blinkchat/src/domain/enums"
+	"github.com/robertokbr/blinkchat/src/domain/logger"
+)
 
 type Pool struct {
 	Broadcast chan Message
@@ -22,4 +27,20 @@ func NewPool() *Pool {
 	}
 
 	return &pool
+}
+
+func (p *Pool) PushMessage(message Message) {
+	switch message.Action {
+	case enums.BROADCASTING:
+		p.Broadcast <- message
+		break
+	case enums.MATCHING:
+		p.Match <- message
+		break
+	case enums.UNMATCHING:
+		p.Unmatch <- message
+		break
+	default:
+		logger.Debugf("Receiving message %v", message)
+	}
 }
