@@ -35,11 +35,8 @@ func TestReadClientMessages(t *testing.T) {
 
 	go simulateClientSendingMessages(jsonMessage, ws.Messages)
 
-	readClientMessagesUsecase := usecases.ReadClientMessages{
-		Client:           &client,
-		Pool:             pool,
-		UnregisterClient: &usecases.UnregisterClient{Pool: pool},
-	}
+	unregisterClientUsecase := usecases.NewUnregisterClient(pool, &client)
+	readClientMessagesUsecase := usecases.NewReadClientMessages(pool, &client, unregisterClientUsecase)
 
 	go readClientMessagesUsecase.Execute()
 

@@ -7,23 +7,31 @@ import (
 	"github.com/robertokbr/blinkchat/src/domain/models"
 )
 
+var RCWG = sync.WaitGroup{}
+
 type RegisterClient struct {
-	Pool *models.Pool
+	pool   *models.Pool
+	client *models.Client
 }
 
-var RegisterClientWG = sync.WaitGroup{}
+func NewRegisterClient(pool *models.Pool, client *models.Client) *RegisterClient {
+	return &RegisterClient{
+		pool:   pool,
+		client: client,
+	}
+}
 
-func (uc *RegisterClient) Execute(client *models.Client) {
-	logger.Infof("Registering client %v", client.User.Email)
+func (uc *RegisterClient) Execute() {
+	logger.Infof("Registering client %v", uc.client.User.Email)
 
-	uc.Pool.Clients[client.ID] = client
+	uc.pool.Clients[uc.client.ID] = uc.client
 
-	message := models.NewUserConnectedMessage(client.User)
+	message := models.NewUserConnectedMessage(uc.client.User)
 
 	go func() {
-		defer RegisterClientWG.Done()
+		defer RCWG.Done()
 
-		for _, pc := range uc.Pool.Clients {
+		for _, pc := range uc.pool.Clients {
 			pc.Conn.WriteJSON(*message)
 		}
 	}()

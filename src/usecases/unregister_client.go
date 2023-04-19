@@ -9,41 +9,49 @@ import (
 	"github.com/robertokbr/blinkchat/src/utils"
 )
 
+var UCWG = sync.WaitGroup{}
+
 type UnregisterClient struct {
-	Pool *models.Pool
+	pool   *models.Pool
+	client *models.Client
 }
 
-var UnregisterClientWG = sync.WaitGroup{}
+func NewUnregisterClient(pool *models.Pool, client *models.Client) *UnregisterClient {
+	return &UnregisterClient{
+		pool:   pool,
+		client: client,
+	}
+}
 
-func (uc *UnregisterClient) Execute(client *models.Client) {
-	logger.Infof("Unregistering client %v", client.User.Email)
+func (uc *UnregisterClient) Execute() {
+	logger.Infof("Unregistering client %v", uc.client.User.Email)
 
 	// remove from pairs pool
-	if client.State == enums.LOOKING_FOR_MATCH {
-		utils.Filter(&uc.Pool.Pairs, func(c *models.Client) bool {
-			return c.ID != client.ID
+	if uc.client.State == enums.LOOKING_FOR_MATCH {
+		utils.Filter(&uc.pool.Pairs, func(c *models.Client) bool {
+			return c.ID != uc.client.ID
 		})
 	}
 
-	if client.Pair != nil && uc.Pool.Clients[client.Pair.ID] != nil {
-		userUnmatchedMessage := models.NewUserUnmatchedMessage(client.User)
+	if uc.client.Pair != nil && uc.pool.Clients[uc.client.Pair.ID] != nil {
+		userUnmatchedMessage := models.NewUserUnmatchedMessage(uc.client.User)
 
-		client.Pair.Unmatch()
+		uc.client.Pair.Unmatch()
 
-		if err := client.Pair.Conn.WriteJSON(*userUnmatchedMessage); err != nil {
+		if err := uc.client.Pair.Conn.WriteJSON(*userUnmatchedMessage); err != nil {
 			logger.Errorf("error writing message: %v", err)
 		}
 	}
 
 	// remove from clients pool
-	delete(uc.Pool.Clients, client.ID)
+	delete(uc.pool.Clients, uc.client.ID)
 
-	message := models.NewUserDisconnectedMessage(client.User)
+	message := models.NewUserDisconnectedMessage(uc.client.User)
 
 	go func() {
-		defer UnregisterClientWG.Done()
+		defer UCWG.Done()
 
-		for _, pc := range uc.Pool.Clients {
+		for _, pc := range uc.pool.Clients {
 			pc.Conn.WriteJSON(*message)
 		}
 	}()

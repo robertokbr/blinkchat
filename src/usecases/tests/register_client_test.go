@@ -16,10 +16,9 @@ func TestRegisterClient(t *testing.T) {
 	pool := models.NewPool()
 	ws := usecases_tests_spies.NewWebsocketConnection()
 	users := usecases_tests_factories.MakeTestUser(5)
-	registerClientUsecase := usecases.RegisterClient{Pool: pool}
 
 	for _, user := range users {
-		usecases.RegisterClientWG.Add(1)
+		usecases.RCWG.Add(1)
 
 		client := models.Client{
 			Conn:  ws,
@@ -27,8 +26,9 @@ func TestRegisterClient(t *testing.T) {
 			State: enums.NOT_IN_A_MATCH,
 		}
 
-		registerClientUsecase.Execute(&client)
-		usecases.RegisterClientWG.Wait()
+		registerClientUsecase := usecases.NewRegisterClient(pool, &client)
+		registerClientUsecase.Execute()
+		usecases.RCWG.Wait()
 	}
 
 	require.Equal(t, 5, len(pool.Clients))

@@ -16,7 +16,7 @@ func TestHandleEventMatching(t *testing.T) {
 	pool := models.NewPool()
 	ws := usecases_tests_spies.NewWebsocketConnection()
 	users := usecases_tests_factories.MakeTestUser(2)
-	matchPoolClientsUsecase := usecases.MatchPoolPairs{Pool: pool}
+	matchPoolClientsUsecase := usecases.NewMatchPoolPairs(pool)
 	u1 := users[0]
 	u2 := users[1]
 

@@ -8,19 +8,31 @@ import (
 )
 
 type ReadClientMessages struct {
-	Client           *models.Client
-	Pool             *models.Pool
-	UnregisterClient *UnregisterClient
+	client           *models.Client
+	pool             *models.Pool
+	unregisterClient *UnregisterClient
+}
+
+func NewReadClientMessages(
+	pool *models.Pool,
+	client *models.Client,
+	unregisterClient *UnregisterClient,
+) *ReadClientMessages {
+	return &ReadClientMessages{
+		client:           client,
+		pool:             pool,
+		unregisterClient: unregisterClient,
+	}
 }
 
 func (uc *ReadClientMessages) Execute() {
 	defer func() {
-		uc.UnregisterClient.Execute(uc.Client)
-		uc.Client.Conn.Close()
+		uc.unregisterClient.Execute()
+		uc.client.Conn.Close()
 	}()
 
 	for {
-		_, websocketMessage, err := uc.Client.Conn.ReadMessage()
+		_, websocketMessage, err := uc.client.Conn.ReadMessage()
 
 		if err != nil {
 			logger.Errorf("error reading message: %v", err)
@@ -36,11 +48,11 @@ func (uc *ReadClientMessages) Execute() {
 
 		message := models.NewMessage(
 			createMessageDTO.Content,
-			uc.Client.User,
+			uc.client.User,
 			enums.MessageType(createMessageDTO.MessageType),
 			enums.WebsocketEvent(createMessageDTO.Event),
 		)
 
-		uc.Pool.PushMessage(*message)
+		uc.pool.PushMessage(*message)
 	}
 }

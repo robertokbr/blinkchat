@@ -9,7 +9,13 @@ import (
 )
 
 type MatchPoolPairs struct {
-	Pool *models.Pool
+	pool *models.Pool
+}
+
+func NewMatchPoolPairs(pool *models.Pool) *MatchPoolPairs {
+	return &MatchPoolPairs{
+		pool: pool,
+	}
 }
 
 func (uc *MatchPoolPairs) genRandomIndexes(len int) (int, int) {
@@ -25,7 +31,7 @@ func (uc *MatchPoolPairs) genRandomIndexes(len int) (int, int) {
 
 func (uc *MatchPoolPairs) Execute() {
 	for {
-		amountOfPairs := len(uc.Pool.Pairs)
+		amountOfPairs := len(uc.pool.Pairs)
 
 		if amountOfPairs < 2 {
 			// Wait for more clients for 5 seconds
@@ -35,16 +41,16 @@ func (uc *MatchPoolPairs) Execute() {
 
 		i1, i2 := uc.genRandomIndexes(amountOfPairs)
 
-		c1 := uc.Pool.Pairs[i1]
-		c2 := uc.Pool.Pairs[i2]
+		c1 := uc.pool.Pairs[i1]
+		c2 := uc.pool.Pairs[i2]
 
 		logger.Infof("Matching clients %v and %v", c1.User.ID, c2.User.ID)
 
 		c1.Match(c2)
 		c2.Match(c1)
 
-		utils.Splice(&uc.Pool.Pairs, i1)
-		utils.Splice(&uc.Pool.Pairs, utils.If(i2 < i1, i2, i2-1))
+		utils.Splice(&uc.pool.Pairs, i1)
+		utils.Splice(&uc.pool.Pairs, utils.If(i2 < i1, i2, i2-1))
 
 		message := models.NewUserMatchedMessage(c2.User)
 
