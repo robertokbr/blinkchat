@@ -3,11 +3,14 @@ package main
 import (
 	"log"
 	"net/http"
+	"runtime"
 
 	"github.com/joho/godotenv"
 	"github.com/robertokbr/blinkchat/src/domain/logger"
+	"github.com/robertokbr/blinkchat/src/domain/models"
 	controller_factories "github.com/robertokbr/blinkchat/src/infrastructure/controllers/factories"
 	"github.com/robertokbr/blinkchat/src/infrastructure/database"
+	"github.com/robertokbr/blinkchat/src/usecases"
 )
 
 func init() {
@@ -25,11 +28,18 @@ func main() {
 		log.Fatalf("error connecting to database: %v", err)
 	}
 
-	wsConnections := controller_factories.MakeWebsocketConnectionsController()
+	pool := models.NewPool()
+	poolWorker := usecases.NewPoolWorker(pool)
+	matchPoolPairs := usecases.NewMatchPoolPairs(pool)
+	poolManager := usecases.NewPoolManager(poolWorker, matchPoolPairs)
+	numOfCPUs := runtime.NumCPU()
+	go poolManager.Execute(numOfCPUs)
+
+	wsConnectionsController := controller_factories.MakeWebsocketConnectionsController(pool)
 
 	http.HandleFunc("/ping", ping)
-	http.HandleFunc("/ws", wsConnections.Create)
-	http.HandleFunc("/ws/connections", wsConnections.FindAll)
+	http.HandleFunc("/ws", wsConnectionsController.Create)
+	http.HandleFunc("/ws/connections", wsConnectionsController.FindAll)
 
 	logger.Info("Starting server on port 8080...")
 
