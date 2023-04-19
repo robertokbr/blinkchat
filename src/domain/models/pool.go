@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"github.com/robertokbr/blinkchat/src/domain/enums"
 	"github.com/robertokbr/blinkchat/src/domain/logger"
 )
@@ -13,7 +11,6 @@ type Pool struct {
 	Unmatch   chan Message
 	Clients   map[string]*Client
 	Pairs     []*Client
-	CreatedAt time.Time
 }
 
 func NewPool() *Pool {
@@ -23,7 +20,6 @@ func NewPool() *Pool {
 		Unmatch:   make(chan Message),
 		Clients:   make(map[string]*Client),
 		Pairs:     make([]*Client, 0),
-		CreatedAt: time.Now(),
 	}
 
 	return &pool
