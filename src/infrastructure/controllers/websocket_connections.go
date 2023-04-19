@@ -9,15 +9,39 @@ import (
 	"github.com/robertokbr/blinkchat/src/domain/models"
 	controller_errors "github.com/robertokbr/blinkchat/src/infrastructure/controllers/errors"
 	"github.com/robertokbr/blinkchat/src/infrastructure/database/repositories"
-	"github.com/robertokbr/blinkchat/src/infrastructure/pkg/websocket"
+	"github.com/robertokbr/blinkchat/src/infrastructure/websocket"
+	"github.com/robertokbr/blinkchat/src/usecases"
 )
 
 type WebsocketConnections struct {
-	Pool            *websocket.Pool
-	UsersRepository *repositories.Users
+	Pool               *models.Pool
+	UsersRepository    *repositories.Users
+	SessionsRepository *repositories.Sessions
 }
 
 func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	token := query.Get("token")
+	session, err := wsc.SessionsRepository.FindByToken(token)
+
+	if err != nil {
+		// handle error
+	}
+
+	if session == nil {
+		// return not found error
+	}
+
+	user, err := wsc.UsersRepository.FindByID(session.UserID)
+
+	if err != nil {
+		// handle error
+	}
+
+	if user == nil {
+		// return not found error
+	}
+
 	connection, err := websocket.Upgrade(r, w)
 
 	if err != nil {
@@ -25,26 +49,18 @@ func (wsc *WebsocketConnections) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	query := r.URL.Query()
-
-	user_id := query.Get("user_id")
-
-	user, err := wsc.UsersRepository.FindByID(user_id)
-
-	if err != nil {
-		// return not found error
-	}
-
-	client := &websocket.Client{
+	client := &models.Client{
 		User:  user,
 		Conn:  connection,
-		Pool:  wsc.Pool,
 		State: enums.NOT_IN_A_MATCH,
 	}
 
-	wsc.Pool.Register(client)
+	registerClientUsecase := usecases.NewRegisterClient(wsc.Pool, client)
+	unregisterClientUsecase := usecases.NewUnregisterClient(wsc.Pool, client)
+	readClientMessagesUsecase := usecases.NewReadClientMessages(wsc.Pool, client, unregisterClientUsecase)
 
-	client.Read()
+	registerClientUsecase.Execute()
+	readClientMessagesUsecase.Execute()
 }
 
 // Return all connected users
