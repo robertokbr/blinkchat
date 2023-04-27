@@ -2,7 +2,8 @@ package dtos
 
 import (
 	"encoding/json"
-	"log"
+
+	"github.com/robertokbr/blinkchat/src/domain/logger"
 )
 
 type rawMessageData struct {
@@ -21,13 +22,13 @@ type CreateMessage struct {
 	Event       string `json:"event"`
 }
 
-func NewCreateMessage(message string) (*CreateMessage, error) {
+func NewCreateMessage(message []byte) (*CreateMessage, error) {
 	var rawMessage rawMessage
 
-	err := json.Unmarshal([]byte(message), &rawMessage)
+	err := json.Unmarshal(message, &rawMessage)
 
 	if err != nil {
-		log.Printf("[error]: failing to create rawMessage with data %v", message)
+		logger.Errorf("failing to create rawMessage with data %v", message)
 		return nil, err
 	}
 
