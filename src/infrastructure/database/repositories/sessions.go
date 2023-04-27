@@ -9,7 +9,7 @@ type Sessions struct {
 	db *gorm.DB
 }
 
-func NewSessionsRepository(db *gorm.DB) *Sessions {
+func NewSessions(db *gorm.DB) *Sessions {
 	return &Sessions{db: db}
 }
 
