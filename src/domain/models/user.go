@@ -15,7 +15,7 @@ type User struct {
 }
 
 // TODO: Add validation
-func NewUser(data dtos.CreateConnection) *User {
+func NewUser(data *dtos.CreateUser) *User {
 	id := uuid.NewString()
 
 	return &User{
