@@ -3,14 +3,14 @@ package usecases_tests_spies
 import "github.com/robertokbr/blinkchat/src/domain/models"
 
 type WebsocketConnection struct {
-	Messages             chan string
+	Messages             chan []byte
 	MessagesSent         []models.Message
 	WriteJSONTimesCalled int
 }
 
 func NewWebsocketConnection() *WebsocketConnection {
 	return &WebsocketConnection{
-		Messages:             make(chan string),
+		Messages:             make(chan []byte),
 		MessagesSent:         make([]models.Message, 0),
 		WriteJSONTimesCalled: 0,
 	}
