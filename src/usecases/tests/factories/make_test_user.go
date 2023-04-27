@@ -8,13 +8,13 @@ import (
 )
 
 func createUser(number int) *models.User {
-	createConnectionDTO := dtos.CreateConnection{
+	createConnectionDTO := dtos.CreateUser{
 		Name:     fmt.Sprintf("test%d", number),
 		Email:    fmt.Sprintf("test%d@email.com", number),
 		ImageURL: "https://test.com/image.png",
 	}
 
-	user := models.NewUser(createConnectionDTO)
+	user := models.NewUser(&createConnectionDTO)
 
 	return user
 }
