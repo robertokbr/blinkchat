@@ -6,22 +6,22 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/robertokbr/blinkchat/src/infrastructure/utils"
+	"github.com/robertokbr/blinkchat/src/utils"
 )
 
 var (
 	info    *log.Logger
 	warning *log.Logger
 	err     *log.Logger
-	debug   *DebugLogger
+	debug   *Logger
 )
 
-type DebugLogger struct {
+type Logger struct {
 	Output func(c int, s string) error
 }
 
-func NewDebugLogger(outputFunction func(c int, s string) error) *DebugLogger {
-	return &DebugLogger{
+func NewLogger(outputFunction func(c int, s string) error) *Logger {
+	return &Logger{
 		Output: outputFunction,
 	}
 }
@@ -34,8 +34,8 @@ func init() {
 	godotenv.Load()
 	debug = utils.If(
 		os.Getenv("LOG_LEVEL") == "debug",
-		NewDebugLogger(log.New(os.Stdout, "[DEBUG]: ", log.Ldate|log.Ltime|log.Lshortfile).Output),
-		NewDebugLogger(fakeOutput),
+		NewLogger(log.New(os.Stdout, "[DEBUG]: ", log.Ldate|log.Ltime|log.Lshortfile).Output),
+		NewLogger(fakeOutput),
 	)
 	info = log.New(os.Stdout, "[INFO]: ", log.Ldate|log.Ltime|log.Lshortfile)
 	warning = log.New(os.Stdout, "[WARNING]: ", log.Ldate|log.Ltime|log.Lshortfile)

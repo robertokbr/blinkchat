@@ -11,7 +11,7 @@ func Upgrade(r *http.Request, w http.ResponseWriter) (*websocket.Conn, error) {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
-		CheckOrigin:     middlewares.Cors,
+		CheckOrigin:     middlewares.WebsocketCors,
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)

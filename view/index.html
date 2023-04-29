@@ -11,29 +11,12 @@
     <h1>Websocket App</h1>
     <button id="button" onclick="startMatching()">Start matching</button>
     <div id="chat" class="hiden">
+        <div id="messages"></div>
         <input type="text" id="message" placeholder="Enter message">
         <button onclick="sendMessage()">Send</button>
     </div>
     <script>
-        let isMatched = false;
-
-        const ws = new WebSocket(`ws://localhost:8080/ws?user={ "name": "rob", "email": "rob@email${Date.now()}@gmail.com" }`);
-        ws.onopen = () => {
-            ws.send('Hello from client');
-        }
-        ws.onmessage = (event) => {
-            console.log(event.data);
-
-            if (JSON.parse(event.data).action === "matching") {
-                isMatched = !isMatched;
-
-                if (isMatched) {
-                    console.log("matched")
-                    document.getElementById('button').classList.toggle('hiden');
-                    document.getElementById('chat').classList.toggle('hiden');
-                }
-            }
-        }
+        let ws;
 
         function startMatching() {
             ws.send(JSON.stringify({
@@ -54,7 +37,61 @@
                     message_type: "text"
                 }
             }))
+
+            document.getElementById('message').value = "";
+
+            const messageElement = document.createElement('p');
+            messageElement.innerText = message;
+            document.getElementById('messages').appendChild(messageElement);
         }
+
+        (async () => {
+            const response = await fetch('http://localhost:8080/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    "email": `user${Date.now()}@email.com`,
+                    "name": `user ${Date.now()}`,
+                }),
+            });
+
+            const { token } = await response.json();
+
+            let isMatched = false;
+
+            ws = new WebSocket(`ws://localhost:8080/ws?token=${token}`);
+            ws.onopen = () => {
+                console.info("connected")
+            }
+            ws.onmessage = (event) => {
+                console.log(event.data);
+
+                if (JSON.parse(event.data).action === "matched") {
+                    isMatched = true;
+
+                    console.log("matched")
+                    document.getElementById('button').classList.toggle('hiden');
+                    document.getElementById('chat').classList.toggle('hiden');
+                }
+
+                if (JSON.parse(event.data).action === "broadcasting") {
+                    const message = JSON.parse(event.data).data.content;
+                    const messageElement = document.createElement('p');
+                    messageElement.innerText = message;
+                    document.getElementById('messages').appendChild(messageElement);
+                }
+
+                if (JSON.parse(event.data).action === "unmatched") {
+                    isMatched = false;
+
+                    console.log("unmatched")
+                    document.getElementById('button').classList.toggle('hiden');
+                    document.getElementById('chat').classList.toggle('hiden');
+                }
+            }
+        })()
     </script>
     <style>
         body {

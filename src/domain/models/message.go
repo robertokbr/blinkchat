@@ -41,3 +41,48 @@ func NewMessage(
 		Data:   message,
 	}
 }
+
+func NewPingMessage(user *User) *Message {
+	return NewMessage(
+		"Ping",
+		user,
+		enums.TEXT,
+		enums.BROADCASTING,
+	)
+}
+
+func NewUserDisconnectedMessage(user *User) *Message {
+	return NewMessage(
+		"User has disconnected",
+		user,
+		enums.TEXT,
+		enums.DISCONNECTED,
+	)
+}
+
+func NewUserConnectedMessage(user *User) *Message {
+	return NewMessage(
+		"New user joined",
+		user,
+		enums.TEXT,
+		enums.CONNECTED,
+	)
+}
+
+func NewUserUnmatchedMessage(user *User) *Message {
+	return NewMessage(
+		"User has been unmatched",
+		user,
+		enums.TEXT,
+		enums.UNMATCHED,
+	)
+}
+
+func NewUserMatchedMessage(user *User) *Message {
+	return NewMessage(
+		"You have been matched with a new user",
+		user,
+		enums.TEXT,
+		enums.MATCHED,
+	)
+}
