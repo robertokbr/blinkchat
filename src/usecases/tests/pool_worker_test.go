@@ -7,40 +7,37 @@ import (
 	"github.com/robertokbr/blinkchat/src/domain/models"
 	"github.com/robertokbr/blinkchat/src/usecases"
 	usecases_tests_factories "github.com/robertokbr/blinkchat/src/usecases/tests/factories"
+	usecases_tests_fakes "github.com/robertokbr/blinkchat/src/usecases/tests/fakes"
 	usecases_tests_spies "github.com/robertokbr/blinkchat/src/usecases/tests/spies"
 	"github.com/stretchr/testify/require"
 )
 
-func TestStartPoolBroadcastCase(t *testing.T) {
+func TestPoolWorkerBroadcastCase(t *testing.T) {
+	jobs := make(chan models.Message)
 	pool := models.NewPool()
+
 	ws := usecases_tests_spies.NewWebsocketConnection()
 	users := usecases_tests_factories.MakeTestUser(2)
+
 	u1 := users[0]
 	u2 := users[1]
-	startPoolUsecase := usecases.NewPoolWorker(pool)
 
-	c1 := models.Client{
-		Conn:  ws,
-		User:  u1,
-		State: enums.NOT_IN_A_MATCH,
-	}
+	c1 := models.NewClient(u1, ws)
+	c2 := models.NewClient(u2, ws)
 
-	c2 := models.Client{
-		Conn:  ws,
-		User:  u2,
-		State: enums.NOT_IN_A_MATCH,
-	}
+	c1.Match(c2)
+	c2.Match(c1)
 
-	c1.Match(&c2)
-	c2.Match(&c1)
-	pool.Clients[c1.ID] = &c1
-	pool.Clients[c2.ID] = &c2
+	pool.Clients[c1.ID] = c1
+	pool.Clients[c2.ID] = c2
 
 	message := models.NewPingMessage(u1)
 
-	go startPoolUsecase.Execute(1)
+	matchPoolPairs := usecases_tests_fakes.NewMatchPoolPairs()
 
-	pool.PushMessage(*message)
+	go usecases.PoolWorker(1, pool, jobs, matchPoolPairs)
+
+	jobs <- *message
 
 	for {
 		if len(ws.MessagesSent) == 1 {
@@ -53,20 +50,18 @@ func TestStartPoolBroadcastCase(t *testing.T) {
 	require.Equal(t, message.Data.From, ws.MessagesSent[0].Data.From)
 }
 
-func TestStartPoolMatchCase(t *testing.T) {
+func TestPoolWorkerMatchCase(t *testing.T) {
+	jobs := make(chan models.Message)
 	pool := models.NewPool()
-	startPoolUsecase := usecases.NewPoolWorker(pool)
+
 	ws := usecases_tests_spies.NewWebsocketConnection()
 	users := usecases_tests_factories.MakeTestUser(2)
+
 	u1 := users[0]
 
-	c1 := models.Client{
-		Conn:  ws,
-		User:  u1,
-		State: enums.NOT_IN_A_MATCH,
-	}
+	c1 := models.NewClient(u1, ws)
 
-	pool.Clients[c1.ID] = &c1
+	pool.Clients[c1.ID] = c1
 
 	message := models.NewMessage(
 		"MATCHING REQUEST",
@@ -75,9 +70,11 @@ func TestStartPoolMatchCase(t *testing.T) {
 		enums.MATCHING,
 	)
 
-	go startPoolUsecase.Execute(1)
+	matchPoolPairs := usecases_tests_fakes.NewMatchPoolPairs()
 
-	pool.PushMessage(*message)
+	go usecases.PoolWorker(1, pool, jobs, matchPoolPairs)
+
+	jobs <- *message
 
 	for {
 		if c1.State == enums.LOOKING_FOR_MATCH {
@@ -85,34 +82,30 @@ func TestStartPoolMatchCase(t *testing.T) {
 		}
 	}
 
+	waitingForMatchClient := <-pool.Pairs
+
 	require.Equal(t, c1.State, enums.LOOKING_FOR_MATCH)
-	require.Equal(t, pool.Pairs[0], &c1)
+	require.Equal(t, waitingForMatchClient, c1)
 }
 
-func TestStartPoolMatchWithAlreadyMatchedClientCase(t *testing.T) {
+func TestPoolWorkerMatchWithAlreadyMatchedClientCase(t *testing.T) {
+	jobs := make(chan models.Message)
 	pool := models.NewPool()
-	startPoolUsecase := usecases.NewPoolWorker(pool)
+
 	ws := usecases_tests_spies.NewWebsocketConnection()
 	users := usecases_tests_factories.MakeTestUser(2)
+
 	u1 := users[0]
 	u2 := users[1]
 
-	c1 := models.Client{
-		Conn:  ws,
-		User:  u1,
-		State: enums.NOT_IN_A_MATCH,
-	}
+	c1 := models.NewClient(u1, ws)
+	c2 := models.NewClient(u2, ws)
 
-	c2 := models.Client{
-		Conn:  ws,
-		User:  u2,
-		State: enums.NOT_IN_A_MATCH,
-	}
+	c1.Match(c2)
+	c2.Match(c1)
 
-	c1.Match(&c2)
-	c2.Match(&c1)
-	pool.Clients[c2.ID] = &c2
-	pool.Clients[c1.ID] = &c1
+	pool.Clients[c2.ID] = c2
+	pool.Clients[c1.ID] = c1
 
 	message := models.NewMessage(
 		"MATCHING REQUEST",
@@ -121,9 +114,11 @@ func TestStartPoolMatchWithAlreadyMatchedClientCase(t *testing.T) {
 		enums.MATCHING,
 	)
 
-	go startPoolUsecase.Execute(1)
+	matchPoolPairs := usecases_tests_fakes.NewMatchPoolPairs()
 
-	pool.PushMessage(*message)
+	go usecases.PoolWorker(1, pool, jobs, matchPoolPairs)
+
+	jobs <- *message
 
 	for {
 		if c1.State == enums.LOOKING_FOR_MATCH {
@@ -132,35 +127,29 @@ func TestStartPoolMatchWithAlreadyMatchedClientCase(t *testing.T) {
 	}
 
 	require.Equal(t, c1.State, enums.LOOKING_FOR_MATCH)
-	require.Equal(t, pool.Pairs[0], &c1)
 	require.Nil(t, c2.Pair)
 	require.Equal(t, ws.MessagesSent[0].Action, enums.UNMATCHED)
 }
 
-func TestStartPoolUnmatchCase(t *testing.T) {
+func TestPoolWorkerUnmatchCase(t *testing.T) {
+	jobs := make(chan models.Message)
 	pool := models.NewPool()
+
 	ws := usecases_tests_spies.NewWebsocketConnection()
 	users := usecases_tests_factories.MakeTestUser(2)
+
 	u1 := users[0]
 	u2 := users[1]
-	startPoolUsecase := usecases.NewPoolWorker(pool)
 
-	c1 := models.Client{
-		Conn:  ws,
-		User:  u1,
-		State: enums.NOT_IN_A_MATCH,
-	}
+	c1 := models.NewClient(u1, ws)
 
-	c2 := models.Client{
-		Conn:  ws,
-		User:  u2,
-		State: enums.NOT_IN_A_MATCH,
-	}
+	c2 := models.NewClient(u2, ws)
 
-	pool.Clients[c1.ID] = &c1
-	pool.Clients[c2.ID] = &c2
-	c1.Match(&c2)
-	c2.Match(&c1)
+	pool.Clients[c1.ID] = c1
+	pool.Clients[c2.ID] = c2
+
+	c1.Match(c2)
+	c2.Match(c1)
 
 	message := models.NewMessage(
 		"UNMATCHING REQUEST",
@@ -169,9 +158,11 @@ func TestStartPoolUnmatchCase(t *testing.T) {
 		enums.UNMATCHING,
 	)
 
-	go startPoolUsecase.Execute(1)
+	matchPoolPairs := usecases_tests_fakes.NewMatchPoolPairs()
 
-	pool.PushMessage(*message)
+	go usecases.PoolWorker(1, pool, jobs, matchPoolPairs)
+
+	jobs <- *message
 
 	for {
 		if len(ws.MessagesSent) == 1 {
