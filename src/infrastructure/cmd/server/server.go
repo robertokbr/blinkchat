@@ -3,19 +3,18 @@ package main
 import (
 	"log"
 	"net/http"
-	"runtime"
 
 	"github.com/joho/godotenv"
 	"github.com/robertokbr/blinkchat/src/domain/logger"
 	"github.com/robertokbr/blinkchat/src/domain/models"
 	controller_factories "github.com/robertokbr/blinkchat/src/infrastructure/controllers/factories"
 	"github.com/robertokbr/blinkchat/src/infrastructure/database"
+	"github.com/robertokbr/blinkchat/src/infrastructure/middlewares"
 	"github.com/robertokbr/blinkchat/src/usecases"
 )
 
 func init() {
 	godotenv.Load()
-
 	logger.Debug("Starting app with debug mode on...")
 }
 
@@ -28,22 +27,28 @@ func main() {
 		log.Fatalf("error connecting to database: %v", err)
 	}
 
+	mux := http.NewServeMux()
+
+	jobs := make(chan models.Message)
 	pool := models.NewPool()
-	poolWorker := usecases.NewPoolWorker(pool)
-	matchPoolPairs := usecases.NewMatchPoolPairs(pool)
-	poolManager := usecases.NewPoolManager(poolWorker, matchPoolPairs)
-	numOfCPUs := runtime.NumCPU()
-	go poolManager.Execute(numOfCPUs)
+	poolWorkerManagerUsecase := usecases.NewPoolWorkerManager(pool, jobs)
 
-	wsConnectionsController := controller_factories.MakeWebsocketConnectionsController(pool)
+	go poolWorkerManagerUsecase.Start()
+	defer poolWorkerManagerUsecase.Stop()
 
-	http.HandleFunc("/ping", ping)
-	http.HandleFunc("/ws", wsConnectionsController.Create)
-	http.HandleFunc("/ws/connections", wsConnectionsController.FindAll)
+	websocketClientsController := controller_factories.MakeWebsocketClientsController(pool, jobs)
+	usersController := controller_factories.MakeUsersController()
+
+	mux.HandleFunc("/ping", ping)
+	mux.HandleFunc("/ws", websocketClientsController.Create)
+	mux.HandleFunc("/ws/clients", websocketClientsController.FindAll)
+	mux.HandleFunc("/users", usersController.Create)
 
 	logger.Info("Starting server on port 8080...")
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	api := middlewares.HttpCors(middlewares.LogRequest(mux))
+
+	if err := http.ListenAndServe(":8080", api); err != nil {
 		logger.Infof("error starting server: %v", err)
 	}
 }
