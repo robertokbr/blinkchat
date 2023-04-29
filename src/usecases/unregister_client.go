@@ -3,35 +3,26 @@ package usecases
 import (
 	"sync"
 
-	"github.com/robertokbr/blinkchat/src/domain/enums"
 	"github.com/robertokbr/blinkchat/src/domain/logger"
 	"github.com/robertokbr/blinkchat/src/domain/models"
-	"github.com/robertokbr/blinkchat/src/utils"
 )
 
 var UCWG = sync.WaitGroup{}
 
 type UnregisterClient struct {
-	pool   *models.Pool
 	client *models.Client
+	pool   *models.Pool
 }
 
-func NewUnregisterClient(pool *models.Pool, client *models.Client) *UnregisterClient {
+func NewUnregisterClient(client *models.Client, pool *models.Pool) *UnregisterClient {
 	return &UnregisterClient{
-		pool:   pool,
 		client: client,
+		pool:   pool,
 	}
 }
 
 func (uc *UnregisterClient) Execute() {
 	logger.Infof("Unregistering client %v", uc.client.User.Email)
-
-	// remove from pairs pool
-	if uc.client.State == enums.LOOKING_FOR_MATCH {
-		utils.Filter(&uc.pool.Pairs, func(c *models.Client) bool {
-			return c.ID != uc.client.ID
-		})
-	}
 
 	if uc.client.Pair != nil && uc.pool.Clients[uc.client.Pair.ID] != nil {
 		userUnmatchedMessage := models.NewUserUnmatchedMessage(uc.client.User)
@@ -47,6 +38,8 @@ func (uc *UnregisterClient) Execute() {
 	delete(uc.pool.Clients, uc.client.ID)
 
 	message := models.NewUserDisconnectedMessage(uc.client.User)
+
+	UCWG.Add(1)
 
 	go func() {
 		defer UCWG.Done()
