@@ -10,14 +10,14 @@ import (
 var RCWG = sync.WaitGroup{}
 
 type RegisterClient struct {
-	pool   *models.Pool
 	client *models.Client
+	pool   *models.Pool
 }
 
-func NewRegisterClient(pool *models.Pool, client *models.Client) *RegisterClient {
+func NewRegisterClient(client *models.Client, pool *models.Pool) *RegisterClient {
 	return &RegisterClient{
-		pool:   pool,
 		client: client,
+		pool:   pool,
 	}
 }
 
@@ -28,11 +28,17 @@ func (uc *RegisterClient) Execute() {
 
 	message := models.NewUserConnectedMessage(uc.client.User)
 
+	RCWG.Add(1)
+
 	go func() {
 		defer RCWG.Done()
 
 		for _, pc := range uc.pool.Clients {
-			pc.Conn.WriteJSON(*message)
+			err := pc.Conn.WriteJSON(*message)
+
+			if err != nil {
+				logger.Errorf("error writing message: %v", err)
+			}
 		}
 	}()
 }
