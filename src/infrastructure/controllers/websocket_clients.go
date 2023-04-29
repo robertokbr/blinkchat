@@ -55,11 +55,9 @@ func (wsc *WebsocketClients) Create(w http.ResponseWriter, r *http.Request) {
 	unregisterClientUsecase := usecases.NewUnregisterClient(client, wsc.pool)
 	readClientMessagesUsecase := usecases.NewReadClientMessages(client, wsc.jobs)
 
-	defer unregisterClientUsecase.Execute()
-	defer readClientMessagesUsecase.Stop()
-
 	registerClientUsecase.Execute()
 	readClientMessagesUsecase.Execute()
+	defer unregisterClientUsecase.Execute()
 }
 
 func (wsc *WebsocketClients) FindAll(w http.ResponseWriter, r *http.Request) {
