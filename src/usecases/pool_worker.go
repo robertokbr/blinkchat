@@ -1,46 +1,46 @@
 package usecases
 
 import (
+	"time"
+
 	"github.com/robertokbr/blinkchat/src/domain/enums"
 	"github.com/robertokbr/blinkchat/src/domain/logger"
 	"github.com/robertokbr/blinkchat/src/domain/models"
+	"github.com/robertokbr/blinkchat/src/utils"
 )
 
-type PoolWorker struct {
-	pool *models.Pool
+type matchPoolPairsUsecase interface {
+	Execute()
 }
 
-func NewPoolWorker(pool *models.Pool) *PoolWorker {
-	return &PoolWorker{
-		pool: pool,
-	}
+var maxMatchingRequestWaitInterval = 3
+
+func checkPair(pool *models.Pool, client *models.Client) bool {
+	return client.Pair != nil && pool.Clients[client.Pair.ID] != nil
 }
 
-func (pw *PoolWorker) checkPair(client *models.Client) bool {
-	return client.Pair != nil && pw.pool.Clients[client.Pair.ID] != nil
-}
-
-func (pw *PoolWorker) Execute(id int) {
+func PoolWorker(id int, pool *models.Pool, jobs <-chan models.Message, matchPoolPairs matchPoolPairsUsecase) {
 	logger.Infof("[Pool %v]: Starting pool", id)
+	go matchPoolPairs.Execute()
 
-	for {
-		select {
-		case message := <-pw.pool.Broadcast:
-			pair := pw.pool.Clients[message.Data.From.ID].Pair
+	for message := range jobs {
+		switch message.Action {
+		case enums.BROADCASTING:
+			pair := pool.Clients[message.Data.From.ID].Pair
 
-			if pw.checkPair(pair) {
+			if checkPair(pool, pair) {
 				if err := pair.Conn.WriteJSON(message); err != nil {
 					logger.Errorf("[Pool %v]: error writing message: %v", id, err)
 				}
 			}
 
 			break
-		case message := <-pw.pool.Match:
-			client := pw.pool.Clients[message.Data.From.ID]
+		case enums.MATCHING:
+			client := pool.Clients[message.Data.From.ID]
 
 			logger.Debugf("[Pool %v]: Receiving matching request from client %v", id, client.User.ID)
 
-			if pw.checkPair(client) {
+			if checkPair(pool, client) {
 				client.Pair.Unmatch()
 
 				userUnmatchedMessage := models.NewUserUnmatchedMessage(client.User)
@@ -52,17 +52,22 @@ func (pw *PoolWorker) Execute(id int) {
 				client.Unmatch()
 			}
 
-			pw.pool.Pairs = append(pw.pool.Pairs, client)
-
 			client.State = enums.LOOKING_FOR_MATCH
 
+			randomInterval := time.Duration(utils.Rand(maxMatchingRequestWaitInterval)) * time.Second
+
+			select {
+			case <-time.After(randomInterval):
+				pool.Pairs <- client
+			}
+
 			break
-		case message := <-pw.pool.Unmatch:
-			client := pw.pool.Clients[message.Data.From.ID]
+		case enums.UNMATCHING:
+			client := pool.Clients[message.Data.From.ID]
 
 			logger.Debugf("[Pool %v]: Receiving unmatching request from client %v", id, client.User.ID)
 
-			if pw.checkPair(client) {
+			if checkPair(pool, client) {
 				client.Pair.Unmatch()
 
 				userUnmatchedMessage := models.NewUserUnmatchedMessage(client.User)
@@ -75,4 +80,6 @@ func (pw *PoolWorker) Execute(id int) {
 			client.Unmatch()
 		}
 	}
+
+	logger.Infof("[Pool %v]: Closing pool", id)
 }
