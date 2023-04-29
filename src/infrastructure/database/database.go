@@ -41,6 +41,7 @@ func (db *Database) Connect() (*gorm.DB, error) {
 	if db.AutoMigrateDb {
 		err := Connection.AutoMigrate(
 			&models.User{},
+			&models.Session{},
 		)
 
 		if err != nil {
