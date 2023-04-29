@@ -13,34 +13,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func simulateClientSendingMessages(message string, channel chan string) {
+func simulateClientSendingMessages(message []byte, channel chan []byte) {
 	channel <- message
 	time.Sleep(1 * time.Second)
 	simulateClientSendingMessages(message, channel)
 }
 
 func TestReadClientMessages(t *testing.T) {
-	pool := models.NewPool()
 	ws := usecases_tests_spies.NewWebsocketConnection()
+
 	users := usecases_tests_factories.MakeTestUser(1)
 	user := users[0]
 
-	client := models.Client{
-		Conn:  ws,
-		User:  user,
-		State: enums.NOT_IN_A_MATCH,
-	}
+	client := models.NewClient(user, ws)
 
 	jsonMessage := "{ \"action\": \"broadcasting\",\"data\": { \"content\": \"Hello test\", \"message_type\": \"text\" } }"
 
-	go simulateClientSendingMessages(jsonMessage, ws.Messages)
+	encodedMessage := []byte(jsonMessage)
 
-	unregisterClientUsecase := usecases.NewUnregisterClient(pool, &client)
-	readClientMessagesUsecase := usecases.NewReadClientMessages(pool, &client, unregisterClientUsecase)
+	jobs := make(chan models.Message)
+
+	readClientMessagesUsecase := usecases.NewReadClientMessages(client, jobs)
 
 	go readClientMessagesUsecase.Execute()
 
-	poolMessage := <-pool.Broadcast
+	go simulateClientSendingMessages(encodedMessage, ws.Messages)
+
+	poolMessage := <-jobs
 
 	require.NotNil(t, poolMessage)
 	require.Equal(t, "Hello test", poolMessage.Data.Content)
