@@ -18,15 +18,13 @@ func TestRegisterClient(t *testing.T) {
 	users := usecases_tests_factories.MakeTestUser(5)
 
 	for _, user := range users {
-		usecases.RCWG.Add(1)
-
 		client := models.Client{
 			Conn:  ws,
 			User:  user,
 			State: enums.NOT_IN_A_MATCH,
 		}
 
-		registerClientUsecase := usecases.NewRegisterClient(pool, &client)
+		registerClientUsecase := usecases.NewRegisterClient(&client, pool)
 		registerClientUsecase.Execute()
 		usecases.RCWG.Wait()
 	}
