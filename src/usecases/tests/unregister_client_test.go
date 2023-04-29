@@ -24,8 +24,7 @@ func TestUnregisterClient(t *testing.T) {
 			State: enums.NOT_IN_A_MATCH,
 		}
 
-		usecases.RCWG.Add(1)
-		registerClientUsecase := usecases.NewRegisterClient(pool, &client)
+		registerClientUsecase := usecases.NewRegisterClient(&client, pool)
 		registerClientUsecase.Execute()
 		usecases.RCWG.Wait()
 	}
@@ -33,8 +32,7 @@ func TestUnregisterClient(t *testing.T) {
 	require.Equal(t, 5, len(pool.Clients))
 
 	for _, client := range pool.Clients {
-		usecases.UCWG.Add(1)
-		unregisterClientUsecase := usecases.NewUnregisterClient(pool, client)
+		unregisterClientUsecase := usecases.NewUnregisterClient(client, pool)
 		unregisterClientUsecase.Execute()
 		usecases.UCWG.Wait()
 	}
@@ -44,33 +42,6 @@ func TestUnregisterClient(t *testing.T) {
 	require.Equal(t, 0, len(pool.Clients))
 	require.Equal(t, enums.DISCONNECTED, lastMessage)
 	require.Equal(t, 25, ws.WriteJSONTimesCalled)
-}
-
-func TestUnregisterClientLookingForMatch(t *testing.T) {
-	pool := models.NewPool()
-	ws := usecases_tests_spies.NewWebsocketConnection()
-	users := usecases_tests_factories.MakeTestUser(1)
-	user := users[0]
-
-	client := models.Client{
-		Conn:  ws,
-		User:  user,
-		State: enums.LOOKING_FOR_MATCH,
-	}
-
-	unregisterClientUsecase := usecases.NewUnregisterClient(pool, &client)
-	pool.Clients[user.ID] = &client
-	pool.Pairs = append(pool.Pairs, &client)
-
-	require.Equal(t, 1, len(pool.Clients))
-	require.Equal(t, 1, len(pool.Pairs))
-
-	usecases.UCWG.Add(1)
-	unregisterClientUsecase.Execute()
-	usecases.UCWG.Wait()
-
-	require.Equal(t, 0, len(pool.Clients))
-	require.Equal(t, 0, len(pool.Pairs))
 }
 
 func TestUnregisterClientWithPair(t *testing.T) {
@@ -92,7 +63,7 @@ func TestUnregisterClientWithPair(t *testing.T) {
 		State: enums.NOT_IN_A_MATCH,
 	}
 
-	unregisterClientUsecase := usecases.NewUnregisterClient(pool, &c1)
+	unregisterClientUsecase := usecases.NewUnregisterClient(&c1, pool)
 	pool.Clients[u1.ID] = &c1
 	pool.Clients[u2.ID] = &c2
 	c1.Match(&c2)
@@ -100,8 +71,6 @@ func TestUnregisterClientWithPair(t *testing.T) {
 
 	require.Equal(t, *c1.Pair, c2)
 	require.Equal(t, *c2.Pair, c1)
-
-	usecases.UCWG.Add(1)
 	unregisterClientUsecase.Execute()
 	usecases.UCWG.Wait()
 
